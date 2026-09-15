@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import {
   FileUp,
   Sparkles,
@@ -57,6 +58,8 @@ export default function ProfilePage() {
     { name: string; issuer: string; date: string; url?: string }[]
   >([]);
 
+  const [isGuest, setIsGuest] = useState(false);
+
   useEffect(() => {
     fetchProfile();
   }, []);
@@ -67,6 +70,7 @@ export default function ProfilePage() {
       const res = await fetch("/api/profile");
       if (res.ok) {
         const data = await res.json();
+        setIsGuest(!!data.isGuest);
         if (data.profile) {
           const p = data.profile;
           setName(p.name || "");
@@ -83,6 +87,25 @@ export default function ProfilePage() {
           setCompleteness(p.profileCompleteness || 60);
           setResumeUrl(p.resumeUrl || null);
         }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuickDemoLogin = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "seeker@talentpulse.ai", password: "demopassword123" }),
+      });
+      if (res.ok) {
+        await fetchProfile();
+        setSuccessMsg("Signed in as Seeker Demo! Your profile is now synced.");
       }
     } catch (e) {
       console.error(e);
@@ -234,6 +257,34 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+      {/* Guest Mode Notice */}
+      {isGuest && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl border border-amber-200 bg-amber-50/70 text-amber-900 shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="h-5 w-5 text-accent shrink-0" />
+            <div className="text-xs">
+              <span className="font-bold">Candidate Profile Preview Mode:</span> You can test Groq AI resume parsing, adjust technical skills, and review ATS formatting.
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleQuickDemoLogin}
+              className="text-xs bg-white border-amber-300 hover:bg-amber-100"
+            >
+              1-Click Seeker Demo Login
+            </Button>
+            <Link href="/login">
+              <Button type="button" variant="primary" size="sm" className="text-xs">
+                Sign In
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Header & Completeness Nudge */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border pb-6">
         <div>

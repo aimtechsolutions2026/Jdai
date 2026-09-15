@@ -8,13 +8,12 @@ import {
   Briefcase,
   SlidersHorizontal,
   Clock,
-  Building2,
   Bookmark,
   CheckCircle2,
   X,
   ExternalLink,
   DollarSign,
-  Filter,
+  GraduationCap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +28,7 @@ export default function JobsPage() {
   const [selectedJobType, setSelectedJobType] = useState<string>("all");
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
   const [minSalary, setMinSalary] = useState<number>(0);
+  const [minExperience, setMinExperience] = useState<number>(0);
   const [savedJobs, setSavedJobs] = useState<string[]>([]);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
@@ -40,7 +40,7 @@ export default function JobsPage() {
 
   useEffect(() => {
     fetchJobs();
-  }, [selectedJobType, selectedLocation, minSalary]);
+  }, [selectedJobType, selectedLocation, minSalary, minExperience]);
 
   const fetchJobs = async () => {
     try {
@@ -50,6 +50,7 @@ export default function JobsPage() {
       if (selectedJobType !== "all") params.set("jobType", selectedJobType);
       if (selectedLocation !== "all") params.set("location", selectedLocation);
       if (minSalary > 0) params.set("salaryMin", minSalary.toString());
+      if (minExperience > 0) params.set("experienceMin", minExperience.toString());
 
       const res = await fetch(`/api/jobs?${params.toString()}`);
       if (res.ok) {
@@ -107,11 +108,16 @@ export default function JobsPage() {
     setSelectedJobType("all");
     setSelectedLocation("all");
     setMinSalary(0);
+    setMinExperience(0);
     setSearch("");
   };
 
   const hasActiveFilters =
-    selectedJobType !== "all" || selectedLocation !== "all" || minSalary > 0 || search;
+    selectedJobType !== "all" ||
+    selectedLocation !== "all" ||
+    minSalary > 0 ||
+    minExperience > 0 ||
+    Boolean(search);
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
@@ -153,17 +159,17 @@ export default function JobsPage() {
           className="gap-1.5 text-xs"
         >
           <SlidersHorizontal className="h-3.5 w-3.5" />
-          <span>Filter Options</span>
+          <span>Filters (Location, Exp, Salary)</span>
           {hasActiveFilters && (
             <span className="h-2 w-2 rounded-full bg-primary ml-1" />
           )}
         </Button>
       </div>
 
-      {/* Main Layout: 25% Sidebar + 75% Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-        {/* Desktop Filter Sidebar */}
-        <aside className="hidden md:block space-y-6">
+      {/* Main Layout: 25% Sticky Sidebar + 75% Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-start">
+        {/* Desktop Filter Sidebar - Static / Sticky on page scroll */}
+        <aside className="hidden md:block md:sticky md:top-20 space-y-6 max-h-[calc(100vh-6rem)] overflow-y-auto pr-1">
           <div className="rounded-2xl border border-border bg-white p-5 shadow-card space-y-6">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <span className="text-xs font-bold uppercase tracking-wider text-text-primary flex items-center gap-1.5">
@@ -239,6 +245,39 @@ export default function JobsPage() {
               </div>
             </div>
 
+            {/* Experience Filter */}
+            <div className="space-y-2.5 border-t border-border pt-4">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold uppercase tracking-wider text-text-secondary">
+                  Experience
+                </label>
+                <span className="text-xs font-bold text-primary">
+                  {minExperience > 0 ? `${minExperience}+ yrs` : "Any"}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 text-xs">
+                {[
+                  { label: "Any Exp", val: 0 },
+                  { label: "1+ Years", val: 1 },
+                  { label: "3+ Years", val: 3 },
+                  { label: "5+ Years", val: 5 },
+                ].map((item) => (
+                  <button
+                    key={item.val}
+                    type="button"
+                    onClick={() => setMinExperience(item.val)}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-medium border transition-colors ${
+                      minExperience === item.val
+                        ? "bg-primary text-white border-primary"
+                        : "bg-surface-alt border-border text-text-secondary hover:border-slate-300"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Minimum Salary Slider */}
             <div className="space-y-2.5 border-t border-border pt-4">
               <div className="flex items-center justify-between">
@@ -258,6 +297,11 @@ export default function JobsPage() {
                 onChange={(e) => setMinSalary(Number(e.target.value))}
                 className="w-full accent-primary cursor-pointer"
               />
+              <div className="flex justify-between text-[10px] text-text-secondary">
+                <span>$0</span>
+                <span>$100k</span>
+                <span>$200k+</span>
+              </div>
             </div>
           </div>
         </aside>
@@ -286,6 +330,12 @@ export default function JobsPage() {
                   />
                 </Badge>
               )}
+              {minExperience > 0 && (
+                <Badge variant="primary" size="sm" className="gap-1">
+                  <span>Exp: {minExperience}+ yrs</span>
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => setMinExperience(0)} />
+                </Badge>
+              )}
               {minSalary > 0 && (
                 <Badge variant="primary" size="sm" className="gap-1">
                   <span>Min ${minSalary / 1000}k</span>
@@ -302,7 +352,7 @@ export default function JobsPage() {
                 onClick={resetFilters}
                 className="text-xs text-text-secondary hover:text-error ml-2"
               >
-                Reset
+                Reset all
               </button>
             </div>
           )}
@@ -323,7 +373,7 @@ export default function JobsPage() {
                 No jobs match your current filters
               </h3>
               <p className="text-xs text-text-secondary max-w-sm mx-auto">
-                Try widening your location or salary criteria to discover more engineering opportunities.
+                Try widening your location, experience, or salary criteria to discover more engineering opportunities.
               </p>
               <Button variant="outline" size="sm" onClick={resetFilters}>
                 Clear All Filters
@@ -390,6 +440,11 @@ export default function JobsPage() {
                         <Badge variant="primary" size="sm" className="capitalize">
                           {job.jobType}
                         </Badge>
+                        {job.experienceRequired?.min !== undefined && (
+                          <Badge variant="outline" size="sm">
+                            {job.experienceRequired.min}+ yrs exp
+                          </Badge>
+                        )}
                         {job.skills?.slice(0, 4).map((s: string) => (
                           <Badge key={s} variant="outline" size="sm">
                             {s}
@@ -503,56 +558,151 @@ export default function JobsPage() {
         )}
       </Modal>
 
-      {/* Mobile Filters Slide-over / Modal */}
+      {/* Mobile Filters Slide-over / Modal containing Location, Experience, and Salary */}
       <Modal
         isOpen={mobileFilterOpen}
         onClose={() => setMobileFilterOpen(false)}
-        title="Filter Engineering Jobs"
+        title="Filter Opportunities"
+        description="Filter by location, required experience, salary range, and workplace type."
       >
-        <div className="space-y-6">
+        <div className="space-y-5">
+          {/* 1. Location Filter */}
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase text-text-secondary">Job Type</label>
-            <div className="grid grid-cols-2 gap-2">
-              {["all", "remote", "hybrid", "onsite"].map((t) => (
-                <Button
-                  key={t}
+            <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-primary" />
+              <span>Location</span>
+            </label>
+            <div className="grid grid-cols-2 gap-1.5">
+              {[
+                { label: "Anywhere", val: "all" },
+                { label: "San Francisco, CA", val: "San Francisco" },
+                { label: "New York, NY", val: "New York" },
+                { label: "Austin, TX", val: "Austin" },
+                { label: "Remote Only", val: "Remote" },
+              ].map((loc) => (
+                <button
+                  key={loc.val}
                   type="button"
-                  variant={selectedJobType === t ? "primary" : "outline"}
-                  size="sm"
-                  className="capitalize text-xs"
-                  onClick={() => setSelectedJobType(t)}
+                  onClick={() => setSelectedLocation(loc.val)}
+                  className={`py-2 px-2.5 rounded-xl text-xs font-medium border text-left truncate transition-colors ${
+                    selectedLocation === loc.val
+                      ? "bg-primary text-white border-primary font-bold"
+                      : "bg-surface-alt border-border text-text-primary hover:border-slate-300"
+                  }`}
                 >
-                  {t}
-                </Button>
+                  {loc.label}
+                </button>
               ))}
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase text-text-secondary">Location</label>
-            <select
-              value={selectedLocation}
-              onChange={(e) => setSelectedLocation(e.target.value)}
-              className="w-full rounded-xl border border-border p-2.5 text-sm"
-            >
-              <option value="all">Any Location</option>
-              <option value="San Francisco">San Francisco, CA</option>
-              <option value="New York">New York, NY</option>
-              <option value="Austin">Austin, TX</option>
-              <option value="Remote">Remote</option>
-            </select>
+          {/* 2. Experience Filter */}
+          <div className="space-y-2 border-t border-border pt-4">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
+                <GraduationCap className="h-3.5 w-3.5 text-primary" />
+                <span>Experience Level</span>
+              </label>
+              <span className="text-xs font-bold text-primary">
+                {minExperience > 0 ? `${minExperience}+ years` : "Any"}
+              </span>
+            </div>
+            <div className="grid grid-cols-4 gap-1.5">
+              {[
+                { label: "Any", val: 0 },
+                { label: "1+ yr", val: 1 },
+                { label: "3+ yr", val: 3 },
+                { label: "5+ yr", val: 5 },
+              ].map((item) => (
+                <button
+                  key={item.val}
+                  type="button"
+                  onClick={() => setMinExperience(item.val)}
+                  className={`py-2 rounded-xl text-xs font-medium border text-center transition-colors ${
+                    minExperience === item.val
+                      ? "bg-primary text-white border-primary font-bold"
+                      : "bg-surface-alt border-border text-text-secondary hover:border-slate-300"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <Button
-            variant="primary"
-            className="w-full"
-            onClick={() => setMobileFilterOpen(false)}
-          >
-            Show Results
-          </Button>
+          {/* 3. Salary Range Filter */}
+          <div className="space-y-2 border-t border-border pt-4">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
+                <DollarSign className="h-3.5 w-3.5 text-primary" />
+                <span>Minimum Annual Salary</span>
+              </label>
+              <span className="text-xs font-bold text-primary">
+                {minSalary > 0 ? `$${minSalary / 1000}k+` : "Any"}
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={200000}
+              step={25000}
+              value={minSalary}
+              onChange={(e) => setMinSalary(Number(e.target.value))}
+              className="w-full accent-primary cursor-pointer"
+            />
+            <div className="flex justify-between text-[10px] text-text-secondary">
+              <span>Any</span>
+              <span>$100k+</span>
+              <span>$200k+</span>
+            </div>
+          </div>
+
+          {/* 4. Workplace Type */}
+          <div className="space-y-2 border-t border-border pt-4">
+            <label className="text-xs font-bold uppercase tracking-wider text-text-secondary">
+              Workplace Type
+            </label>
+            <div className="grid grid-cols-4 gap-1.5">
+              {["all", "remote", "hybrid", "onsite"].map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setSelectedJobType(t)}
+                  className={`py-2 rounded-xl text-xs capitalize font-medium border text-center transition-colors ${
+                    selectedJobType === t
+                      ? "bg-primary text-white border-primary font-bold"
+                      : "bg-surface-alt border-border text-text-secondary hover:border-slate-300"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Modal Action Buttons */}
+          <div className="flex items-center gap-2 pt-3 border-t border-border">
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              className="w-1/3 text-xs"
+              onClick={resetFilters}
+            >
+              Reset
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              className="w-2/3 text-xs"
+              onClick={() => setMobileFilterOpen(false)}
+            >
+              Apply ({jobs.length} Results)
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>
   );
 }
-

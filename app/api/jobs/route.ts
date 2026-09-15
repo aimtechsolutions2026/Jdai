@@ -13,6 +13,9 @@ export async function GET(req: NextRequest) {
     const salaryMin = searchParams.get("salaryMin")
       ? Number(searchParams.get("salaryMin"))
       : undefined;
+    const experienceMin = searchParams.get("experienceMin")
+      ? Number(searchParams.get("experienceMin"))
+      : undefined;
 
     const jobs = await JobRepository.findMany({
       search,
@@ -20,6 +23,7 @@ export async function GET(req: NextRequest) {
       jobType,
       role,
       salaryMin,
+      experienceMin,
       status: "published",
     });
 

@@ -1,20 +1,22 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Compass,
   Briefcase,
   Flame,
   User as UserIcon,
   FileText,
   Search,
   LogOut,
-  ShieldCheck,
-  Building2,
   Menu,
   X,
-  Compass,
+  ChevronDown,
+  LayoutDashboard,
+  FileCheck2,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +36,9 @@ export function Navbar() {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [streakCount, setStreakCount] = useState<number>(3);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     async function fetchUser() {
@@ -58,10 +62,22 @@ export function Navbar() {
     fetchUser();
   }, [pathname]);
 
+  // Click outside to close dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setProfileDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
       setUser(null);
+      setProfileDropdownOpen(false);
       router.push("/login");
       router.refresh();
     } catch (e) {
@@ -109,46 +125,56 @@ export function Navbar() {
               Browse Jobs
             </Link>
 
-            {(!user || user.role === "seeker") && (
+            {/* Always-visible Profile Link */}
+            <Link
+              href="/profile"
+              className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                pathname === "/profile"
+                  ? "text-primary bg-blue-50/60 font-semibold"
+                  : "text-text-secondary hover:text-text-primary hover:bg-slate-50"
+              }`}
+            >
+              <UserIcon className="h-4 w-4" />
+              <span>Profile</span>
+            </Link>
+
+            <Link
+              href="/mcq"
+              className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                pathname === "/mcq"
+                  ? "text-primary bg-blue-50/60 font-semibold"
+                  : "text-text-secondary hover:text-text-primary hover:bg-slate-50"
+              }`}
+            >
+              <span>Daily MCQ</span>
+              <span className="flex items-center gap-0.5 text-xs font-bold text-accent bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-200/50">
+                <Flame className="h-3.5 w-3.5 fill-accent text-accent animate-flame-bounce" />
+                {streakCount}d
+              </span>
+            </Link>
+
+            {user && (
               <>
                 <Link
-                  href="/mcq"
-                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    pathname === "/mcq"
+                  href="/applications"
+                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    pathname === "/applications"
                       ? "text-primary bg-blue-50/60 font-semibold"
                       : "text-text-secondary hover:text-text-primary hover:bg-slate-50"
                   }`}
                 >
-                  <span>Daily MCQ</span>
-                  <span className="flex items-center gap-0.5 text-xs font-bold text-accent bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-200/50">
-                    <Flame className="h-3.5 w-3.5 fill-accent text-accent animate-flame-bounce" />
-                    {streakCount}d
-                  </span>
+                  My Applications
                 </Link>
-                {user && (
-                  <>
-                    <Link
-                      href="/applications"
-                      className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                        pathname === "/applications"
-                          ? "text-primary bg-blue-50/60 font-semibold"
-                          : "text-text-secondary hover:text-text-primary hover:bg-slate-50"
-                      }`}
-                    >
-                      My Applications
-                    </Link>
-                    <Link
-                      href="/resume-center"
-                      className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                        pathname === "/resume-center"
-                          ? "text-primary bg-blue-50/60 font-semibold"
-                          : "text-text-secondary hover:text-text-primary hover:bg-slate-50"
-                      }`}
-                    >
-                      Resume Center
-                    </Link>
-                  </>
-                )}
+                <Link
+                  href="/resume-center"
+                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    pathname === "/resume-center"
+                      ? "text-primary bg-blue-50/60 font-semibold"
+                      : "text-text-secondary hover:text-text-primary hover:bg-slate-50"
+                  }`}
+                >
+                  Resume Center
+                </Link>
               </>
             )}
 
@@ -231,63 +257,120 @@ export function Navbar() {
           {loading ? (
             <div className="h-8 w-20 bg-slate-200 animate-pulse rounded-lg" />
           ) : user ? (
-            <div className="flex items-center gap-3">
-              {user.role === "seeker" && (
-                <Link href="/dashboard" className="hidden sm:inline-flex">
-                  <Button variant="outline" size="sm" className="gap-1.5">
-                    <UserIcon className="h-4 w-4 text-text-secondary" />
-                    <span>Dashboard</span>
-                  </Button>
-                </Link>
-              )}
-
-              {user.role === "seeker" && (
-                <Link href="/profile" className="hidden sm:inline-flex">
-                  <Button variant="ghost" size="sm">
-                    My Profile
-                  </Button>
-                </Link>
-              )}
-
-              {/* Role badge */}
-              <Badge
-                variant={
-                  user.role === "admin"
-                    ? "warning"
-                    : user.role === "recruiter"
-                    ? "secondary"
-                    : "primary"
-                }
-                size="sm"
-                className="capitalize hidden sm:inline-flex"
+            <div className="relative" ref={dropdownRef}>
+              {/* Clickable Profile Trigger Button */}
+              <button
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-surface-alt transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
+                aria-label="User profile menu"
               >
-                {user.role}
-              </Badge>
-
-              {/* User Dropdown / Logout */}
-              <div className="flex items-center gap-2">
-                <div className="h-9 w-9 rounded-full bg-slate-100 border border-border flex items-center justify-center font-bold text-sm text-text-primary overflow-hidden">
+                <div className="h-9 w-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-bold text-sm text-primary overflow-hidden">
                   {user.avatarUrl ? (
                     <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
                   ) : (
                     user.name?.[0]?.toUpperCase() || "U"
                   )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="text-text-secondary hover:text-error h-9 px-2"
-                  title="Log out"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
+                <div className="hidden sm:flex flex-col text-left">
+                  <span className="text-xs font-bold text-text-primary leading-tight line-clamp-1 max-w-[120px]">
+                    {user.name}
+                  </span>
+                  <span className="text-[10px] text-text-secondary capitalize leading-tight">
+                    {user.role}
+                  </span>
+                </div>
+                <ChevronDown className="h-3.5 w-3.5 text-text-secondary hidden sm:block" />
+              </button>
+
+              {/* Profile Dropdown Menu */}
+              {profileDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-border bg-white shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="p-3 border-b border-border mb-1">
+                    <div className="font-bold text-sm text-text-primary">{user.name}</div>
+                    <div className="text-xs text-text-secondary truncate">{user.email}</div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge
+                        variant={
+                          user.role === "admin"
+                            ? "warning"
+                            : user.role === "recruiter"
+                            ? "secondary"
+                            : "primary"
+                        }
+                        size="sm"
+                        className="capitalize"
+                      >
+                        {user.role}
+                      </Badge>
+                      <span className="text-xs font-bold text-accent flex items-center gap-1">
+                        <Flame className="h-3 w-3 fill-accent" />
+                        {streakCount}d Streak
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <Link
+                      href="/profile"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg text-text-primary hover:bg-surface-alt hover:text-primary transition-colors"
+                    >
+                      <UserIcon className="h-4 w-4 text-text-secondary" />
+                      <span>My Profile & Resume</span>
+                    </Link>
+
+                    {user.role === "seeker" && (
+                      <Link
+                        href="/dashboard"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg text-text-primary hover:bg-surface-alt hover:text-primary transition-colors"
+                      >
+                        <LayoutDashboard className="h-4 w-4 text-text-secondary" />
+                        <span>Seeker Dashboard</span>
+                      </Link>
+                    )}
+
+                    <Link
+                      href="/applications"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg text-text-primary hover:bg-surface-alt hover:text-primary transition-colors"
+                    >
+                      <Briefcase className="h-4 w-4 text-text-secondary" />
+                      <span>My Applications</span>
+                    </Link>
+
+                    <Link
+                      href="/resume-center"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg text-text-primary hover:bg-surface-alt hover:text-primary transition-colors"
+                    >
+                      <FileCheck2 className="h-4 w-4 text-text-secondary" />
+                      <span>ATS Resume Center</span>
+                    </Link>
+                  </div>
+
+                  <div className="border-t border-border mt-2 pt-1">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg text-error hover:bg-rose-50 transition-colors text-left"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex items-center gap-2">
+              <Link href="/profile" className="hidden sm:inline-flex">
+                <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-text-secondary hover:text-primary">
+                  <UserIcon className="h-3.5 w-3.5" />
+                  <span>Profile Preview</span>
+                </Button>
+              </Link>
               <Link href="/login">
-                <Button variant="ghost" size="sm">
+                <Button variant="outline" size="sm">
                   Sign In
                 </Button>
               </Link>
@@ -321,6 +404,14 @@ export function Navbar() {
             Browse Jobs
           </Link>
           <Link
+            href="/profile"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
+          >
+            <UserIcon className="h-4 w-4 text-primary" />
+            <span>Candidate Profile & Resume</span>
+          </Link>
+          <Link
             href="/mcq"
             onClick={() => setMobileMenuOpen(false)}
             className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
@@ -330,95 +421,53 @@ export function Navbar() {
               {streakCount}d Streak 🔥
             </span>
           </Link>
-          {user && (
+          {user ? (
             <>
-              {user.role === "seeker" && (
-                <>
-                  <Link
-                    href="/dashboard"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
-                  >
-                    Seeker Dashboard
-                  </Link>
-                  <Link
-                    href="/profile"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
-                  >
-                    My Profile & Resume
-                  </Link>
-                  <Link
-                    href="/applications"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
-                  >
-                    My Applications
-                  </Link>
-                  <Link
-                    href="/resume-center"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
-                  >
-                    Resume Center
-                  </Link>
-                </>
-              )}
-              {user.role === "recruiter" && (
-                <>
-                  <Link
-                    href="/recruiter/dashboard"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
-                  >
-                    Recruiter Dashboard
-                  </Link>
-                  <Link
-                    href="/recruiter/search"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
-                  >
-                    Candidate Search
-                  </Link>
-                </>
-              )}
-              {user.role === "admin" && (
-                <>
-                  <Link
-                    href="/admin/ingest"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
-                  >
-                    AI Job Ingestion
-                  </Link>
-                  <Link
-                    href="/admin/jobs"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
-                  >
-                    Job Management
-                  </Link>
-                  <Link
-                    href="/admin/mcq-bank"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
-                  >
-                    MCQ Bank
-                  </Link>
-                  <Link
-                    href="/admin/users"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
-                  >
-                    User Management
-                  </Link>
-                </>
-              )}
+              <Link
+                href="/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/applications"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
+              >
+                My Applications
+              </Link>
+              <Link
+                href="/resume-center"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
+              >
+                Resume Center
+              </Link>
+              <div className="border-t border-border pt-2">
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-error hover:bg-rose-50"
+                >
+                  Log Out
+                </button>
+              </div>
             </>
+          ) : (
+            <div className="pt-2 border-t border-border flex flex-col gap-2">
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="outline" className="w-full">Sign In</Button>
+              </Link>
+              <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="primary" className="w-full">Get Started Free</Button>
+              </Link>
+            </div>
           )}
         </div>
       )}
     </header>
   );
 }
-

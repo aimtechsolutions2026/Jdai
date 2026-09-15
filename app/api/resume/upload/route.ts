@@ -8,9 +8,6 @@ import pdfParse from "pdf-parse";
 export async function POST(req: NextRequest) {
   try {
     const session = await getSessionUser();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -55,12 +52,11 @@ export async function POST(req: NextRequest) {
     if (parsedData.certificates.length > 0) completeness += 10;
     completeness = Math.min(completeness, 100);
 
-    // 6. Update SeekerProfile
-    const updatedProfile = await ProfileRepository.upsertByUserId(session.userId, {
+    let updatedProfile = {
       resumeUrl,
       parsedResumeRaw: parsedData,
-      name: parsedData.name || session.name,
-      email: parsedData.email || session.email,
+      name: parsedData.name || session?.name || "Alex Morgan",
+      email: parsedData.email || session?.email || "alex@example.com",
       phone: parsedData.phone || "",
       location: parsedData.location || "Remote",
       pincode: parsedData.pincode || "",
@@ -70,10 +66,16 @@ export async function POST(req: NextRequest) {
       certificates: parsedData.certificates || [],
       salaryExpectation: parsedData.salaryExpectation || { min: 120000, max: 170000, currency: "USD" },
       profileCompleteness: completeness,
-    });
+    };
+
+    // 6. If logged in, persist to SeekerProfile
+    if (session) {
+      updatedProfile = await ProfileRepository.upsertByUserId(session.userId, updatedProfile);
+    }
 
     return NextResponse.json({
       success: true,
+      isGuest: !session,
       resumeUrl,
       parsedData,
       profile: updatedProfile,
@@ -86,4 +88,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

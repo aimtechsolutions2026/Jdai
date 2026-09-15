@@ -20,7 +20,7 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  const seekerRoutes = ["/dashboard", "/profile", "/applications", "/resume-center"];
+  const seekerRoutes = ["/dashboard", "/applications", "/resume-center"];
   const recruiterRoutes = ["/recruiter"];
   const adminRoutes = ["/admin"];
 
@@ -66,7 +66,6 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     "/dashboard/:path*",
-    "/profile/:path*",
     "/applications/:path*",
     "/resume-center/:path*",
     "/recruiter/:path*",

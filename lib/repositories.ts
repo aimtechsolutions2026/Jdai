@@ -167,6 +167,12 @@ export const JobRepository = {
             { skills: { $in: [new RegExp(filters.search, "i")] } },
           ];
         }
+        if (filters.salaryMin && filters.salaryMin > 0) {
+          query["salaryRange.max"] = { $gte: filters.salaryMin };
+        }
+        if (filters.experienceMin !== undefined && filters.experienceMin > 0) {
+          query["experienceRequired.min"] = { $gte: filters.experienceMin };
+        }
         const jobs = await Job.find(query).sort({ postedAt: -1 }).lean();
         if (jobs && jobs.length > 0) return jobs;
       } catch (e) {
@@ -188,6 +194,18 @@ export const JobRepository = {
     if (filters.location && filters.location !== "all") {
       result = result.filter((j) =>
         j.location.toLowerCase().includes(filters.location!.toLowerCase())
+      );
+    }
+    if (filters.salaryMin && filters.salaryMin > 0) {
+      result = result.filter(
+        (j) =>
+          (j.salaryRange?.max || 0) >= filters.salaryMin! ||
+          (j.salaryRange?.min || 0) >= filters.salaryMin!
+      );
+    }
+    if (filters.experienceMin !== undefined && filters.experienceMin > 0) {
+      result = result.filter(
+        (j) => (j.experienceRequired?.min || 0) >= filters.experienceMin!
       );
     }
     if (filters.search) {
