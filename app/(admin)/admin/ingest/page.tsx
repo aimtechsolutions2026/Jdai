@@ -138,42 +138,50 @@ export default function AdminIngestPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-border space-x-6">
-        <button
-          onClick={() => setActiveTab("paste-text")}
-          className={`flex items-center gap-2 pb-3 text-sm font-semibold border-b-2 transition-all ${
-            activeTab === "paste-text"
-              ? "border-primary text-primary"
-              : "border-transparent text-text-secondary hover:text-text-primary"
-          }`}
-        >
-          <FileText className="h-4 w-4" />
-          <span>Paste Raw Text</span>
-        </button>
+      <div className="border-b border-border overflow-x-auto no-scrollbar">
+        <nav className="-mb-px flex space-x-4 sm:space-x-8 min-w-max" aria-label="Ingestion Source Tabs">
+          <button
+            type="button"
+            onClick={() => setActiveTab("paste-text")}
+            className={`inline-flex items-center gap-2 pb-3.5 pt-1 text-sm font-semibold border-b-2 transition-all whitespace-nowrap shrink-0 ${
+              activeTab === "paste-text"
+                ? "border-primary text-primary"
+                : "border-transparent text-text-secondary hover:text-text-primary hover:border-slate-300"
+            }`}
+          >
+            <FileText className="h-4 w-4 shrink-0" />
+            <span>Paste Raw Text</span>
+          </button>
 
-        <button
-          onClick={() => setActiveTab("paste-link")}
-          className={`flex items-center gap-2 pb-3 text-sm font-semibold border-b-2 transition-all ${
-            activeTab === "paste-link"
-              ? "border-primary text-primary"
-              : "border-transparent text-text-secondary hover:text-text-primary"
-          }`}
-        >
-          <Link2 className="h-4 w-4" />
-          <span>Paste External Link</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("paste-link")}
+            className={`inline-flex items-center gap-2 pb-3.5 pt-1 text-sm font-semibold border-b-2 transition-all whitespace-nowrap shrink-0 ${
+              activeTab === "paste-link"
+                ? "border-primary text-primary"
+                : "border-transparent text-text-secondary hover:text-text-primary hover:border-slate-300"
+            }`}
+          >
+            <Link2 className="h-4 w-4 shrink-0" />
+            <span>Paste External Link</span>
+          </button>
 
-        <button
-          onClick={() => setActiveTab("apify")}
-          className={`flex items-center gap-2 pb-3 text-sm font-semibold border-b-2 transition-all ${
-            activeTab === "apify"
-              ? "border-primary text-primary"
-              : "border-transparent text-text-secondary hover:text-text-primary"
-          }`}
-        >
-          <Radio className="h-4 w-4" />
-          <span>Apify Scraper Queue (Phase 2)</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("apify")}
+            className={`inline-flex items-center gap-2 pb-3.5 pt-1 text-sm font-semibold border-b-2 transition-all whitespace-nowrap shrink-0 ${
+              activeTab === "apify"
+                ? "border-primary text-primary"
+                : "border-transparent text-text-secondary hover:text-text-primary hover:border-slate-300"
+            }`}
+          >
+            <Radio className="h-4 w-4 shrink-0" />
+            <span>Apify Scraper Queue</span>
+            <Badge variant="outline" size="sm" className="text-[10px] py-0 px-1.5 font-normal ml-0.5">
+              Phase 2
+            </Badge>
+          </button>
+        </nav>
       </div>
 
       {/* Notification alerts */}
@@ -207,7 +215,7 @@ export default function AdminIngestPage() {
               placeholder="Paste raw JD here (e.g. from LinkedIn, Lever, Greenhouse, or internal notes)..."
               className="w-full rounded-xl border border-border bg-surface-alt p-3.5 text-sm text-text-primary focus:border-primary focus:ring-1 focus:ring-primary"
             />
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
               <span className="text-xs text-text-secondary">
                 Groq Llama-3.3 will extract role, company, salary, experience, and key skills.
               </span>
@@ -215,7 +223,7 @@ export default function AdminIngestPage() {
                 variant="primary"
                 onClick={handleExtractText}
                 isLoading={extracting}
-                className="gap-2"
+                className="w-full sm:w-auto gap-2 shrink-0"
               >
                 <Sparkles className="h-4 w-4 text-accent" />
                 <span>Extract with AI</span>
