@@ -59,7 +59,7 @@ export const SEED_JOBS = [
     companyName: "Ramp",
     companyLogoUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=128&h=128&fit=crop&q=80",
     role: "Senior AI / ML Platform Engineer",
-    jd: `<h3>About Ramp</h3><p>Ramp is the ultimate platform for modern finance. We help thousands of businesses save time and money with corporate cards, expense management, and AI invoice automation.</p><h3>What you'll work on</h3><ul><li>Deploy low-latency LLM inference pipelines for real-time receipt parsing and fraud detection.</li><li>Build evaluation harnesses for multi-model AI routing with Groq, Anthropic, and OpenAI.</li><li>Scale vector embeddings and semantic search infrastructure in Python and Rust.</li></ul><h3>Qualifications</h3><ul><li>4+ years engineering backend or ML systems in production.</li><li>Expertise in Python, PyTorch, LangChain, or direct LLM SDK implementations.</li><li>Experience scaling Postgres or vector databases (Pinecone/pgvector).</li></ul>`,
+    jd: `<h3>About Ramp</h3><p>Ramp is the ultimate platform for modern finance. We help thousands of businesses save time and money with corporate cards, expense management, and AI invoice automation.</p><h3>What you'll work on</h3><ul><li>Deploy low-latency AI inference pipelines for real-time receipt parsing and fraud detection.</li><li>Build evaluation harnesses for intelligent multi-model AI routing and orchestration.</li><li>Scale vector embeddings and semantic search infrastructure in Python and Rust.</li></ul><h3>Qualifications</h3><ul><li>4+ years engineering backend or ML systems in production.</li><li>Expertise in Python, PyTorch, or high-performance AI SDK implementations.</li><li>Experience scaling Postgres or vector databases (Pinecone/pgvector).</li></ul>`,
     salaryRange: { min: 175000, max: 230000, currency: "USD" },
     location: "New York, NY (Onsite)",
     pincode: "10003",
@@ -229,7 +229,7 @@ export const SEED_CANDIDATES = [
     profileCompleteness: 88,
     streak: 18,
     avatarUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=128&h=128&fit=crop&q=80",
-    bio: "Building fine-tuned LLM inference engines and semantic search retrieval pipelines."
+    bio: "Building fine-tuned AI inference engines and semantic search retrieval pipelines."
   }
 ];
 

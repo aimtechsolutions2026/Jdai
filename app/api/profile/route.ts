@@ -37,8 +37,9 @@ const DEFAULT_GUEST_PROFILE = {
     {
       name: "AWS Certified Solutions Architect Associate",
       issuer: "Amazon Web Services",
+      certificateId: "AWS-SAA-802319",
       date: "2023",
-      url: "",
+      url: "https://aws.amazon.com/verification",
     },
   ],
   salaryExpectation: { min: 140000, max: 185000, currency: "USD" },

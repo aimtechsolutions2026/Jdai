@@ -1,7 +1,7 @@
-# PRD.md — Job Seeker Platform
+# PRD.md — CodifyPro Job Seeker Platform by Aimtech Solutions
 
 ## 1. Overview
-A job-seeking platform connecting **Job Seekers**, **Recruiters**, and **Admins**. The platform uses AI (Groq API) to auto-parse resumes and job postings, gamifies the job-search/skill-building journey with daily MCQs and streaks, and generates ATS-friendly, tailored resumes for each job application.
+A modern AI-powered job-seeking and recruitment platform connecting **Job Seekers**, **Recruiters**, and **Admins**. The platform leverages high-performance AI to auto-parse resumes and job postings, gamifies the job-search/skill-building journey with daily MCQs and streaks, and generates ATS-friendly, tailored resumes for each job application.
 
 ## 2. Problem Statement
 - Job seekers spend too much time manually filling profiles and tailoring resumes per application.
@@ -12,7 +12,7 @@ A job-seeking platform connecting **Job Seekers**, **Recruiters**, and **Admins*
 ## 3. Goals
 1. Reduce profile creation time via AI resume parsing (upload PDF → autofill profile).
 2. Provide recruiters a fast way to discover candidates by role/skills.
-3. Aggregate jobs from multiple sources (Apify scrapers, external links, manually pasted text) into one normalized format using Groq AI extraction.
+3. Aggregate jobs from multiple sources (Apify scrapers, external links, manually pasted text) into one normalized format using AI extraction.
 4. Increase seeker engagement/retention via daily MCQ gamification + streaks.
 5. Let seekers generate a tailored, ATS-friendly resume per job in one click.
 
@@ -27,7 +27,7 @@ A job-seeking platform connecting **Job Seekers**, **Recruiters**, and **Admins*
 
 ### 5.1 Job Seeker
 1. Sign up / Log in (email+password, optionally OAuth later)
-2. Upload resume (PDF only) → Groq API parses → profile auto-filled (editable)
+2. Upload resume (PDF only) → AI parses → profile auto-filled (editable)
 3. Complete/edit profile: experience, skills, salary expectation, contact, certificates, education, projects
 4. Browse Jobs page → filter (location, pincode, role, experience, salary) → Job Card → Job Detail
 5. Apply to job (Easy Apply — uses stored profile/resume) or via external apply link
@@ -38,7 +38,7 @@ A job-seeking platform connecting **Job Seekers**, **Recruiters**, and **Admins*
 1. Add job via:
    - Apify (or other) scraper source integration
    - Paste external job link → system fetches content
-   - Paste raw job text → Groq AI extracts structured fields
+   - Paste raw job text → AI extracts structured fields
 2. Review/edit AI-extracted fields (company name, salary range, JD, location, apply link) before publishing
 3. Manage MCQ question bank (add/edit/categorize DSA & aptitude questions)
 4. View basic analytics (jobs posted, applications, active users)
@@ -49,8 +49,8 @@ A job-seeking platform connecting **Job Seekers**, **Recruiters**, and **Admins*
 3. View shortlisted profile details (resume, skills, experience)
 
 ## 6. Key Features (summary — see features.md for detail)
-- AI Resume Parsing & Autofill (Groq)
-- AI Job Detail Extraction (Groq) from pasted text/links/scraper payloads
+- AI Resume Parsing & Autofill
+- AI Job Detail Extraction from pasted text/links/scraper payloads
 - Job Search & Filters (location, pincode, role, experience, salary)
 - Easy Apply + external apply link support
 - Tailored & ATS-friendly resume generation/download
@@ -73,5 +73,5 @@ A job-seeking platform connecting **Job Seekers**, **Recruiters**, and **Admins*
 
 ## 9. Assumptions & Constraints
 - Resume upload restricted to PDF only (v1)
-- Groq API used for all LLM extraction/generation tasks (resume parsing, job parsing, tailored resume generation)
+- AI engine used for all extraction/generation tasks (resume parsing, job parsing, tailored resume generation)
 - MongoDB as primary datastore; Redis for caching, streaks, sessions/rate-limiting; Cloudinary for file storage (resumes, avatars, certificates)

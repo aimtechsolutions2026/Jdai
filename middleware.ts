@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
-const AUTH_COOKIE_NAME = "talentpulse_token";
+const AUTH_COOKIE_NAME = "codifypro_token";
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "talentpulse-insecure-dev-secret-key-32charsmin"
+  process.env.JWT_SECRET || "codifypro-insecure-dev-secret-key-32charsmin"
 );
 
 export async function middleware(req: NextRequest) {

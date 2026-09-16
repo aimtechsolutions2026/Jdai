@@ -58,7 +58,7 @@ export default function ApplicationsPage() {
             My Applications
           </h1>
           <p className="text-sm text-text-secondary mt-1">
-            Real-time status tracking for roles you have applied to on TalentPulse.
+            Real-time status tracking for roles you have applied to on CodifyPro.
           </p>
         </div>
         <Link href="/jobs">

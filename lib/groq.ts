@@ -8,8 +8,9 @@ import {
 
 const groqApiKey = process.env.GROQ_API_KEY;
 const groq = groqApiKey ? new Groq({ apiKey: groqApiKey }) : null;
+const AI_MODEL = process.env.AI_MODEL || "llama-3.3-70b-versatile";
 
-// Heuristic fallback parser when Groq key is not supplied
+// Heuristic fallback parser when AI API key is not supplied
 function fallbackResumeParser(text: string): ResumeParsedData {
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
   const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
@@ -124,7 +125,7 @@ ${resumeRawText.slice(0, 10000)}`;
 
   try {
     const response = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: AI_MODEL,
       messages: [
         {
           role: "system",
@@ -141,7 +142,7 @@ ${resumeRawText.slice(0, 10000)}`;
     const parsed = JSON.parse(cleaned);
     return ResumeParsedSchema.parse(parsed);
   } catch (err: any) {
-    console.error("Groq resume parsing error, falling back to heuristic:", err?.message);
+    console.error("AI resume parsing error, falling back to heuristic:", err?.message);
     return fallbackResumeParser(resumeRawText);
   }
 }
@@ -198,7 +199,7 @@ ${jobText.slice(0, 10000)}`;
 
   try {
     const response = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: AI_MODEL,
       messages: [
         {
           role: "system",
@@ -215,7 +216,7 @@ ${jobText.slice(0, 10000)}`;
     const parsed = JSON.parse(cleaned);
     return JobExtractedSchema.parse(parsed);
   } catch (err: any) {
-    console.error("Groq job extraction error:", err?.message);
+    console.error("AI job extraction error:", err?.message);
     return {
       companyName: "Tech Company",
       companyLogoUrl: "",

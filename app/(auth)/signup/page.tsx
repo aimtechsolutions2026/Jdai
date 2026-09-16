@@ -71,7 +71,7 @@ function SignUpForm() {
           </div>
           <div className="flex items-center gap-1.5">
             <span className="text-xl font-bold tracking-tight text-secondary">
-              TalentPulse
+              CodifyPro
             </span>
             <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary border border-blue-200">
               AI
@@ -188,7 +188,7 @@ function SignUpForm() {
           </form>
 
           <p className="text-[11px] text-text-secondary text-center mt-4">
-            By registering, you agree to TalentPulse&apos;s Terms of Service and Privacy Policy.
+            By registering, you agree to CodifyPro&apos;s Terms of Service and Privacy Policy.
           </p>
         </div>
       </div>

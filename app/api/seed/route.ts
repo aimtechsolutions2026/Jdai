@@ -30,11 +30,11 @@ export async function GET(req: NextRequest) {
     }
 
     // Seed default demo accounts
-    const existingSeeker = await User.findOne({ email: "seeker@talentpulse.ai" });
+    const existingSeeker = await User.findOne({ email: "seeker@codifypro.ai" });
     if (!existingSeeker) {
       const passwordHash = await hashPassword("demopassword123");
       const user = await User.create({
-        email: "seeker@talentpulse.ai",
+        email: "seeker@codifypro.ai",
         passwordHash,
         name: "Alex Morgan",
         role: "seeker",
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
       await SeekerProfile.create({
         userId: user._id,
         name: "Alex Morgan",
-        email: "seeker@talentpulse.ai",
+        email: "seeker@codifypro.ai",
         phone: "+1 (555) 349-2041",
         location: "San Francisco, CA",
         skills: ["TypeScript", "React", "Next.js", "Node.js", "PostgreSQL", "Docker", "AWS"],
@@ -67,11 +67,11 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const existingRecruiter = await User.findOne({ email: "recruiter@talentpulse.ai" });
+    const existingRecruiter = await User.findOne({ email: "recruiter@codifypro.ai" });
     if (!existingRecruiter) {
       const passwordHash = await hashPassword("demopassword123");
       await User.create({
-        email: "recruiter@talentpulse.ai",
+        email: "recruiter@codifypro.ai",
         passwordHash,
         name: "Sarah Jenkins",
         role: "recruiter",
@@ -80,11 +80,11 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const existingAdmin = await User.findOne({ email: "admin@talentpulse.ai" });
+    const existingAdmin = await User.findOne({ email: "admin@codifypro.ai" });
     if (!existingAdmin) {
       const passwordHash = await hashPassword("demopassword123");
       await User.create({
-        email: "admin@talentpulse.ai",
+        email: "admin@codifypro.ai",
         passwordHash,
         name: "System Admin",
         role: "admin",

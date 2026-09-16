@@ -1,4 +1,4 @@
-# architecture.md — System Architecture
+# architecture.md — CodifyPro System Architecture (Aimtech Solutions)
 
 ## 1. High-Level Architecture
 
@@ -23,7 +23,7 @@
         ▼
 ┌────────────────────────────────────────────────────────────────────┐
 │                        External Services Layer                      │
-│  - Groq API (resume parsing, job-detail extraction, tailored resume  │
+│  - AI Engine (resume parsing, job-detail extraction, tailored resume│
 │    generation, ATS keyword optimization)                             │
 │  - Apify / scraper actors (job source ingestion)                     │
 │  - External job link fetcher (server-side fetch + HTML parse)        │
@@ -36,9 +36,9 @@
 - **Database**: MongoDB (via Mongoose) — flexible schema for varied resume/profile fields, job postings, MCQ bank.
 - **Cache/Realtime counters**: Redis — streaks, daily-question-attempted flags, rate limiting (login, AI calls), session/JWT blacklist, leaderboard (sorted sets).
 - **File storage**: Cloudinary — resume PDFs, profile photos, certificates, company logos (auto-optimized delivery, PDF preview thumbnails).
-- **AI**: Groq API — fast LLM inference for structured extraction (resume → JSON profile, raw job text → JSON job fields) and resume tailoring/generation.
+- **AI**: AI Engine — fast inference for structured extraction (resume → JSON profile, raw job text → JSON job fields) and resume tailoring/generation.
 - **Auth**: NextAuth.js (credentials + optional Google OAuth) or custom JWT (access + refresh token in httpOnly cookies).
-- **Job scraping ingestion**: Apify actors (or custom scrapers) → webhook/cron pushes raw data → Groq normalizes → Admin review queue.
+- **Job scraping ingestion**: Apify actors (or custom scrapers) → webhook/cron pushes raw data → AI normalizes → Admin review queue.
 
 ## 3. Data Models (high-level)
 
@@ -53,7 +53,7 @@
 ### SeekerProfile
 ```
 {
-  userId, resumeUrl (Cloudinary), parsedResumeRaw (Groq output),
+  userId, resumeUrl (Cloudinary), parsedResumeRaw (AI output),
   experience: [{ company, title, from, to, description }],
   education: [{ school, degree, year }],
   skills: [String],
@@ -100,18 +100,18 @@
 
 ### 4.1 Resume Upload → Autofill
 1. Client uploads PDF → validated (type/size) → stored in Cloudinary.
-2. Server extracts raw text from PDF (e.g., `pdf-parse`) → sends text to Groq with a structured-JSON extraction prompt (schema: experience, education, skills, contact, certificates).
-3. Groq JSON response validated (schema check) → saved as `parsedResumeRaw` and mapped into `SeekerProfile` fields (editable by user before save).
+2. Server extracts raw text from PDF (e.g., `pdf-parse`) → sends text to AI Engine with a structured-JSON extraction prompt (schema: experience, education, skills, contact, certificates).
+3. AI JSON response validated (schema check) → saved as `parsedResumeRaw` and mapped into `SeekerProfile` fields (editable by user before save).
 
 ### 4.2 Job Ingestion (Admin)
 1. **Apify/source route**: scheduled job (cron) pulls new listings via Apify API → raw payloads queued.
-2. **Link route**: Admin pastes URL → server fetches HTML → extracts main content (readability parser) → sent to Groq.
-3. **Paste-text route**: Admin pastes raw JD text directly → sent to Groq.
-4. In all cases, Groq returns structured JSON (companyName, salaryRange, JD, location, applyUrl) → shown to Admin in a review form → Admin edits/confirms → job saved with `status: published`.
+2. **Link route**: Admin pastes URL → server fetches HTML → extracts main content (readability parser) → sent to AI Engine.
+3. **Paste-text route**: Admin pastes raw JD text directly → sent to AI Engine.
+4. In all cases, AI returns structured JSON (companyName, salaryRange, JD, location, applyUrl) → shown to Admin in a review form → Admin edits/confirms → job saved with `status: published`.
 
 ### 4.3 Tailored Resume Generation
 1. User selects a job → clicks "Generate Tailored Resume".
-2. Server sends: base profile JSON + target job JD to Groq with prompt to (a) reorder/emphasize relevant experience & skills, (b) inject ATS keywords from JD, (c) return structured resume JSON.
+2. Server sends: base profile JSON + target job JD to AI Engine with prompt to (a) reorder/emphasize relevant experience & skills, (b) inject ATS keywords from JD, (c) return structured resume JSON.
 3. Server renders JSON → PDF (e.g., via `@react-pdf/renderer` or HTML-to-PDF) → uploads to Cloudinary → returns download link.
 
 ### 4.4 Daily MCQ & Streak
@@ -129,7 +129,7 @@
 ```
 /api/auth/*                 - login, signup, session
 /api/profile                - GET/PUT seeker profile
-/api/resume/upload          - POST PDF → Cloudinary + Groq parse
+/api/resume/upload          - POST PDF → Cloudinary + AI parse
 /api/resume/tailor          - POST { jobId } → tailored resume PDF
 /api/jobs                   - GET (list+filters), POST (admin create)
 /api/jobs/[id]              - GET detail
@@ -145,7 +145,7 @@
 
 ## 6. Caching & Rate Limiting (Redis)
 - Cache published job list queries (short TTL, e.g., 60s) keyed by filter hash.
-- Rate-limit Groq API calls per user (e.g., resume upload: 5/day; tailored resume: 10/day) to control cost/abuse.
+- Rate-limit AI API calls per user (e.g., resume upload: 5/day; tailored resume: 10/day) to control cost/abuse.
 - Rate-limit login attempts (brute-force protection).
 
 ## 7. Security Considerations
@@ -153,7 +153,7 @@
 - Sanitize AI-extracted HTML/JD content before rendering (prevent stored XSS) — use a sanitizer (e.g., `sanitize-html`).
 - Signed, expiring Cloudinary URLs for private documents (resumes) if not meant to be public.
 - Role-based route guards (middleware) for `/admin/*` and `/recruiter/*`.
-- Validate/whitelist all Groq JSON outputs against a strict schema (e.g., zod) before persisting — never trust raw LLM output blindly.
+- Validate/whitelist all AI JSON outputs against a strict schema (e.g., zod) before persisting — never trust raw model output blindly.
 
 ## 8. Deployment
 - Next.js app → Vercel (or self-hosted Node server).

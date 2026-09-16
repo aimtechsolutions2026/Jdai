@@ -133,7 +133,7 @@ export default function AdminIngestPage() {
           AI Job Ingestion Engine
         </h1>
         <p className="text-sm text-text-secondary mt-1">
-          Normalize raw job descriptions from external portals or plain text into structured opportunities using Groq AI.
+          Normalize raw job descriptions from external portals or plain text into structured opportunities using AI.
         </p>
       </div>
 
@@ -217,7 +217,7 @@ export default function AdminIngestPage() {
             />
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
               <span className="text-xs text-text-secondary">
-                Groq Llama-3.3 will extract role, company, salary, experience, and key skills.
+                AI will extract role, company, salary, experience, and key skills.
               </span>
               <Button
                 variant="primary"
@@ -263,7 +263,7 @@ export default function AdminIngestPage() {
               </Button>
             </div>
             <p className="text-xs text-text-secondary">
-              TalentPulse will scrape the external webpage, clean the HTML, and normalize structured fields via Groq.
+              CodifyPro will scrape the external webpage, clean the HTML, and normalize structured fields via AI.
             </p>
           </CardContent>
         </Card>

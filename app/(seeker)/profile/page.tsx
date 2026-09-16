@@ -23,6 +23,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { RecruiterAnalyticsCard } from "@/components/profile/RecruiterAnalyticsCard";
+import { AtsResumeModal } from "@/components/profile/AtsResumeModal";
 
 export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -55,8 +57,9 @@ export default function ProfilePage() {
   >([]);
 
   const [certificates, setCertificates] = useState<
-    { name: string; issuer: string; date: string; url?: string }[]
+    { name: string; issuer: string; date: string; certificateId?: string; url?: string }[]
   >([]);
+  const [showAtsModal, setShowAtsModal] = useState(false);
 
   const [isGuest, setIsGuest] = useState(false);
 
@@ -101,7 +104,7 @@ export default function ProfilePage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "seeker@talentpulse.ai", password: "demopassword123" }),
+        body: JSON.stringify({ email: "seeker@codifypro.ai", password: "demopassword123" }),
       });
       if (res.ok) {
         await fetchProfile();
@@ -245,6 +248,23 @@ export default function ProfilePage() {
     setEducation(education.filter((_, i) => i !== index));
   };
 
+  const addCertificateEntry = () => {
+    setCertificates([
+      ...certificates,
+      { name: "", certificateId: "", issuer: "", date: "", url: "" },
+    ]);
+  };
+
+  const updateCertificate = (index: number, field: string, value: string) => {
+    const updated = [...certificates];
+    (updated[index] as any)[field] = value;
+    setCertificates(updated);
+  };
+
+  const removeCertificate = (index: number) => {
+    setCertificates(certificates.filter((_, i) => i !== index));
+  };
+
   if (loading) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-12 space-y-6">
@@ -263,7 +283,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-2.5">
             <Sparkles className="h-5 w-5 text-accent shrink-0" />
             <div className="text-xs">
-              <span className="font-bold">Candidate Profile Preview Mode:</span> You can test Groq AI resume parsing, adjust technical skills, and review ATS formatting.
+              <span className="font-bold">Candidate Profile Preview Mode:</span> You can test AI resume parsing, adjust technical skills, and review ATS formatting.
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -292,18 +312,30 @@ export default function ProfilePage() {
             Candidate Profile
           </h1>
           <p className="text-sm text-text-secondary mt-1">
-            Manage your verified details, skills, work history, and Groq-parsed resume.
+            Manage your verified details, skills, work history, and AI-parsed resume.
           </p>
         </div>
-        <Button
-          onClick={handleSaveProfile}
-          size="md"
-          isLoading={saving}
-          className="gap-2 shrink-0"
-        >
-          <CheckCircle2 className="h-4 w-4" />
-          <span>Save Changes</span>
-        </Button>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <Button
+            type="button"
+            variant="outline"
+            size="md"
+            onClick={() => setShowAtsModal(true)}
+            className="gap-2 shrink-0 border-blue-200 text-primary hover:bg-blue-50 font-semibold"
+          >
+            <FileText className="h-4 w-4" />
+            <span>Download ATS Resume</span>
+          </Button>
+          <Button
+            onClick={handleSaveProfile}
+            size="md"
+            isLoading={saving}
+            className="gap-2 shrink-0"
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            <span>Save Changes</span>
+          </Button>
+        </div>
       </div>
 
       {/* Completeness Progress Banner */}
@@ -328,6 +360,13 @@ export default function ProfilePage() {
           />
         </div>
       </div>
+
+      {/* Recruiter Activity & Profile Views Analytics Graph */}
+      <RecruiterAnalyticsCard
+        profileName={name || "Candidate"}
+        skillsCount={skills.length}
+        experienceCount={experience.length}
+      />
 
       {/* Notifications */}
       {successMsg && (
@@ -356,11 +395,11 @@ export default function ProfilePage() {
           <div className="space-y-1">
             <h3 className="text-base font-bold text-text-primary">
               {parsing
-                ? "Groq AI is parsing your resume..."
+                ? "AI is parsing your resume..."
                 : "Upload or Replace Resume (PDF Only)"}
             </h3>
             <p className="text-xs text-text-secondary max-w-md mx-auto">
-              Our Llama 3.3 pipeline will automatically extract and prefill your experience, education, skills, and target salary in seconds.
+              Our AI pipeline will automatically extract and prefill your experience, education, skills, and target salary in seconds.
             </p>
           </div>
 
@@ -396,6 +435,17 @@ export default function ProfilePage() {
                 </Button>
               </a>
             )}
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAtsModal(true)}
+              className="gap-1.5 border-blue-200 text-primary hover:bg-blue-50"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              <span>Preview ATS Resume</span>
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -690,16 +740,162 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
+      {/* Certifications & Licenses */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Award className="h-4 w-4 text-primary" />
+              <span>Certifications & Verified Credentials</span>
+            </CardTitle>
+            <p className="text-xs text-text-secondary mt-0.5">
+              Add verified certificate names and credential IDs to boost your ATS keyword matches and recruiter credibility.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addCertificateEntry}
+            className="gap-1 text-xs shrink-0"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>Add Certificate</span>
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {certificates.map((cert, idx) => (
+            <div
+              key={idx}
+              className="rounded-xl border border-border p-4 bg-surface-alt space-y-3 relative"
+            >
+              <button
+                type="button"
+                onClick={() => removeCertificate(idx)}
+                className="absolute top-3 right-3 text-text-secondary hover:text-error transition-colors"
+                title="Remove certificate"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pr-8">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-text-secondary mb-1">
+                    Certification / License Name <span className="text-error">*</span>
+                  </label>
+                  <Input
+                    value={cert.name}
+                    onChange={(e) => updateCertificate(idx, "name", e.target.value)}
+                    placeholder="e.g. AWS Certified Solutions Architect - Associate"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-text-secondary mb-1">
+                    Certificate / Credential ID
+                  </label>
+                  <Input
+                    value={cert.certificateId || ""}
+                    onChange={(e) => updateCertificate(idx, "certificateId", e.target.value)}
+                    placeholder="e.g. AWS-SAA-802319"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-text-secondary mb-1">
+                    Issuing Organization / Authority
+                  </label>
+                  <Input
+                    value={cert.issuer}
+                    onChange={(e) => updateCertificate(idx, "issuer", e.target.value)}
+                    placeholder="e.g. Amazon Web Services (AWS)"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-text-secondary mb-1">
+                    Issue Date / Year
+                  </label>
+                  <Input
+                    value={cert.date}
+                    onChange={(e) => updateCertificate(idx, "date", e.target.value)}
+                    placeholder="e.g. 2024"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-text-secondary mb-1">
+                  Credential Verification URL (Optional)
+                </label>
+                <Input
+                  value={cert.url || ""}
+                  onChange={(e) => updateCertificate(idx, "url", e.target.value)}
+                  placeholder="https://cp.certmetrics.com/amazon/public/verify/credential/..."
+                />
+              </div>
+            </div>
+          ))}
+          {certificates.length === 0 && (
+            <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-text-secondary space-y-2">
+              <Award className="h-8 w-8 mx-auto text-slate-400" />
+              <p className="text-xs font-medium">No certifications added yet.</p>
+              <p className="text-[11px] text-text-muted">
+                Add certifications like AWS, GCP, CKA, or PMP to boost your ATS keyword score.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addCertificateEntry}
+                className="gap-1 text-xs mt-2"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Add First Certification</span>
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Bottom Save Action Bar */}
-      <div className="sticky bottom-4 z-30 flex items-center justify-between rounded-2xl bg-white/95 backdrop-blur-md border border-border p-4 shadow-xl">
+      <div className="sticky bottom-4 z-30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl bg-white/95 backdrop-blur-md border border-border p-4 shadow-xl">
         <div className="text-xs text-text-secondary">
-          Keep your details updated so recruiters can match you accurately.
+          Keep your details updated so recruiters can match and discover your verified profile.
         </div>
-        <Button onClick={handleSaveProfile} size="md" isLoading={saving} className="gap-2">
-          <CheckCircle2 className="h-4 w-4" />
-          <span>Save Changes</span>
-        </Button>
+        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            size="md"
+            onClick={() => setShowAtsModal(true)}
+            className="gap-2 border-blue-200 text-primary hover:bg-blue-50 font-semibold"
+          >
+            <FileText className="h-4 w-4" />
+            <span>Download ATS Resume</span>
+          </Button>
+          <Button onClick={handleSaveProfile} size="md" isLoading={saving} className="gap-2">
+            <CheckCircle2 className="h-4 w-4" />
+            <span>Save Changes</span>
+          </Button>
+        </div>
       </div>
+
+      {/* ATS Resume Modal */}
+      <AtsResumeModal
+        isOpen={showAtsModal}
+        onClose={() => setShowAtsModal(false)}
+        profile={{
+          name,
+          email,
+          phone,
+          location,
+          skills,
+          experience,
+          education,
+          certificates,
+          salaryExpectation: {
+            min: Number(salaryMin),
+            max: Number(salaryMax),
+            currency: "USD",
+          },
+        }}
+      />
     </div>
   );
 }

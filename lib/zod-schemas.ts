@@ -33,6 +33,7 @@ export const ResumeParsedSchema = z.object({
       z.object({
         name: z.string().default(""),
         issuer: z.string().default(""),
+        certificateId: z.string().optional().default(""),
         url: z.string().default(""),
         date: z.string().default(""),
       })
@@ -125,6 +126,7 @@ export const ProfileUpdateSchema = z.object({
       z.object({
         name: z.string(),
         issuer: z.string(),
+        certificateId: z.string().optional(),
         url: z.string().optional(),
         date: z.string().optional(),
       })

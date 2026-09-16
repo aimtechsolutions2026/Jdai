@@ -1,4 +1,4 @@
-# features.md — Feature Breakdown
+# features.md — CodifyPro Feature Breakdown (Aimtech Solutions)
 
 ## 1. Authentication & Onboarding
 - Sign up / login (email+password; OAuth optional v1.1)
@@ -7,7 +7,7 @@
 
 ## 2. AI Resume Parsing & Profile Autofill
 - PDF-only resume upload (validated client + server side)
-- Text extraction from PDF + Groq API structured-JSON parsing
+- Text extraction from PDF + AI structured-JSON parsing
 - Auto-fill profile: experience, education, skills, contact, certificates
 - User can review/edit all AI-extracted fields before saving
 - Re-upload/re-parse supported
@@ -31,8 +31,8 @@
 
 ## 5. Job Ingestion (Admin) — Multi-Source
 - **Apify/scraper integration**: scheduled pull of listings from external sources into a review queue
-- **Paste external link**: server fetches page content → Groq extracts structured fields
-- **Paste raw text**: Admin pastes JD text directly → Groq extracts structured fields
+- **Paste external link**: server fetches page content → AI extracts structured fields
+- **Paste raw text**: Admin pastes JD text directly → AI extracts structured fields
 - Extracted fields: company name, salary range, JD, location, experience required, apply URL
 - Admin review/edit step before publishing (AI output is a draft, not auto-published)
 - Job status lifecycle: pending-review → published → archived
@@ -44,7 +44,7 @@
 
 ## 7. AI Resume Generation
 - **ATS-Friendly Resume**: generic, keyword-optimized, clean single-column format, generated once from profile
-- **Tailored Resume (per job)**: Groq reorders/emphasizes relevant experience & injects JD keywords for a specific job
+- **Tailored Resume (per job)**: AI reorders/emphasizes relevant experience & injects JD keywords for a specific job
 - Downloadable as PDF; history of previously generated tailored resumes kept in Resume Center
 
 ## 8. Gamification — Daily MCQ & Streaks

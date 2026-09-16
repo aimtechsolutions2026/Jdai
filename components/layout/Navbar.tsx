@@ -17,9 +17,13 @@ import {
   LayoutDashboard,
   FileCheck2,
   Sparkles,
+  Users,
+  HelpCircle,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { NotificationDropdown } from "./NotificationDropdown";
 
 interface CurrentUser {
   id: string;
@@ -90,24 +94,24 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-white/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8">
         {/* Brand Logo */}
-        <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white shadow-sm transition-transform group-hover:scale-105">
-              <Compass className="h-5 w-5" />
+        <div className="flex items-center gap-4 sm:gap-8 shrink-0">
+          <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group shrink-0">
+            <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-primary text-white shadow-sm transition-transform group-hover:scale-105 shrink-0">
+              <Compass className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </div>
             <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <span className="text-lg font-bold tracking-tight text-secondary">
-                  TalentPulse
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <span className="text-base sm:text-lg font-bold tracking-tight text-secondary">
+                  CodifyPro
                 </span>
-                <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary border border-blue-200/60">
+                <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-primary border border-blue-200/60 shrink-0">
                   AI
                 </span>
               </div>
-              <span className="text-[10px] font-medium text-text-secondary leading-none">
-                by JDAI
+              <span className="text-[9px] sm:text-[10px] font-medium text-text-secondary leading-none">
+                by Aimtech Solutions
               </span>
             </div>
           </Link>
@@ -125,18 +129,6 @@ export function Navbar() {
               Browse Jobs
             </Link>
 
-            {/* Always-visible Profile Link */}
-            <Link
-              href="/profile"
-              className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                pathname === "/profile"
-                  ? "text-primary bg-blue-50/60 font-semibold"
-                  : "text-text-secondary hover:text-text-primary hover:bg-slate-50"
-              }`}
-            >
-              <UserIcon className="h-4 w-4" />
-              <span>Profile</span>
-            </Link>
 
             <Link
               href="/mcq"
@@ -208,7 +200,17 @@ export function Navbar() {
             {user?.role === "admin" && (
               <>
                 <Link
-                  href="/admin/ingest"
+                  href="/admin"
+                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    pathname === "/admin"
+                      ? "text-primary bg-blue-50/60 font-semibold"
+                      : "text-text-secondary hover:text-text-primary hover:bg-slate-50"
+                  }`}
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  href="/admin/jobs"
                   className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                     pathname === "/admin/ingest"
                       ? "text-primary bg-blue-50/60 font-semibold"
@@ -253,9 +255,12 @@ export function Navbar() {
         </div>
 
         {/* Right CTA / Auth Status */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          {/* Notifications Dropdown */}
+          <NotificationDropdown />
+
           {loading ? (
-            <div className="h-8 w-20 bg-slate-200 animate-pulse rounded-lg" />
+            <div className="h-8 w-16 sm:w-20 bg-slate-200 animate-pulse rounded-lg" />
           ) : user ? (
             <div className="relative" ref={dropdownRef}>
               {/* Clickable Profile Trigger Button */}
@@ -330,6 +335,17 @@ export function Navbar() {
                       </Link>
                     )}
 
+                    {user.role === "admin" && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg text-text-primary hover:bg-surface-alt hover:text-primary transition-colors"
+                      >
+                        <ShieldCheck className="h-4 w-4 text-warning" />
+                        <span>Admin Dashboard</span>
+                      </Link>
+                    )}
+
                     <Link
                       href="/applications"
                       onClick={() => setProfileDropdownOpen(false)}
@@ -362,20 +378,20 @@ export function Navbar() {
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <Link href="/profile" className="hidden sm:inline-flex">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Link href="/profile" className="hidden lg:inline-flex">
                 <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-text-secondary hover:text-primary">
                   <UserIcon className="h-3.5 w-3.5" />
                   <span>Profile Preview</span>
                 </Button>
               </Link>
-              <Link href="/login">
-                <Button variant="outline" size="sm">
+              <Link href="/login" className="hidden min-[370px]:inline-flex">
+                <Button variant="outline" size="sm" className="h-8 px-2 sm:px-3 text-xs whitespace-nowrap">
                   Sign In
                 </Button>
               </Link>
               <Link href="/signup">
-                <Button variant="primary" size="sm">
+                <Button variant="primary" size="sm" className="h-8 px-2.5 sm:px-3 text-xs font-semibold shadow-sm whitespace-nowrap">
                   Get Started
                 </Button>
               </Link>
@@ -385,85 +401,247 @@ export function Navbar() {
           {/* Mobile hamburger button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg text-text-secondary hover:bg-slate-100"
+            className="md:hidden p-1.5 sm:p-2 rounded-lg text-text-secondary hover:bg-slate-100 shrink-0"
             aria-label="Toggle menu"
           >
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {mobileMenuOpen ? <X className="h-5 w-5 sm:h-6 sm:w-6" /> : <Menu className="h-5 w-5 sm:h-6 sm:w-6" />}
           </button>
         </div>
       </div>
 
       {/* Mobile dropdown menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-border bg-white px-4 py-3 space-y-1 shadow-lg">
-          <Link
-            href="/jobs"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
-          >
-            Browse Jobs
-          </Link>
-          <Link
-            href="/profile"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
-          >
-            <UserIcon className="h-4 w-4 text-primary" />
-            <span>Candidate Profile & Resume</span>
-          </Link>
-          <Link
-            href="/mcq"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
-          >
-            <span>Daily MCQ Challenge</span>
-            <span className="text-xs font-bold text-accent bg-amber-50 px-2 py-0.5 rounded-full">
-              {streakCount}d Streak 🔥
-            </span>
-          </Link>
+        <div className="md:hidden border-t border-border bg-white px-4 py-3 space-y-2 shadow-lg">
           {user ? (
             <>
-              <Link
-                href="/dashboard"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
-              >
-                Dashboard
-              </Link>
-              <Link
-                href="/applications"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
-              >
-                My Applications
-              </Link>
-              <Link
-                href="/resume-center"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
-              >
-                Resume Center
-              </Link>
-              <div className="border-t border-border pt-2">
+              {/* User Identity Header */}
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-border">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-bold text-xs text-primary overflow-hidden">
+                    {user.avatarUrl ? (
+                      <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
+                    ) : (
+                      user.name?.[0]?.toUpperCase() || "U"
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-text-primary leading-tight line-clamp-1">{user.name}</div>
+                    <div className="text-[10px] text-text-secondary truncate">{user.email}</div>
+                  </div>
+                </div>
+                <Badge
+                  variant={
+                    user.role === "admin"
+                      ? "warning"
+                      : user.role === "recruiter"
+                      ? "secondary"
+                      : "primary"
+                  }
+                  size="sm"
+                  className="capitalize"
+                >
+                  {user.role}
+                </Badge>
+              </div>
+
+              {/* Admin Links */}
+              {user.role === "admin" && (
+                <div className="space-y-1">
+                  <Link
+                    href="/admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
+                  >
+                    <ShieldCheck className="h-4 w-4 text-warning" />
+                    <span>Admin Dashboard</span>
+                  </Link>
+                  <Link
+                    href="/admin/ingest"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
+                  >
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <span>AI Ingestion Hub</span>
+                  </Link>
+                  <Link
+                    href="/admin/jobs"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
+                  >
+                    <Briefcase className="h-4 w-4 text-text-secondary" />
+                    <span>Manage Jobs</span>
+                  </Link>
+                  <Link
+                    href="/admin/mcq-bank"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
+                  >
+                    <HelpCircle className="h-4 w-4 text-text-secondary" />
+                    <span>MCQ Question Bank</span>
+                  </Link>
+                  <Link
+                    href="/admin/users"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
+                  >
+                    <Users className="h-4 w-4 text-text-secondary" />
+                    <span>User Directory</span>
+                  </Link>
+                  <Link
+                    href="/jobs"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-secondary hover:bg-surface-alt"
+                  >
+                    <Compass className="h-4 w-4 text-text-secondary" />
+                    <span>View Public Job Board</span>
+                  </Link>
+                </div>
+              )}
+
+              {/* Recruiter Links */}
+              {user.role === "recruiter" && (
+                <div className="space-y-1">
+                  <Link
+                    href="/recruiter/dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
+                  >
+                    <LayoutDashboard className="h-4 w-4 text-primary" />
+                    <span>Recruiter Hub</span>
+                  </Link>
+                  <Link
+                    href="/recruiter/search"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
+                  >
+                    <Search className="h-4 w-4 text-primary" />
+                    <span>Find Candidates</span>
+                  </Link>
+                  <Link
+                    href="/jobs"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-secondary hover:bg-surface-alt"
+                  >
+                    <Briefcase className="h-4 w-4 text-text-secondary" />
+                    <span>Browse Jobs</span>
+                  </Link>
+                </div>
+              )}
+
+              {/* Seeker Links */}
+              {user.role === "seeker" && (
+                <div className="space-y-1">
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
+                  >
+                    <LayoutDashboard className="h-4 w-4 text-primary" />
+                    <span>Seeker Dashboard</span>
+                  </Link>
+                  <Link
+                    href="/jobs"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
+                  >
+                    <Briefcase className="h-4 w-4 text-text-secondary" />
+                    <span>Browse Jobs</span>
+                  </Link>
+                  <Link
+                    href="/mcq"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Flame className="h-4 w-4 text-accent fill-accent" />
+                      <span>Daily MCQ Challenge</span>
+                    </div>
+                    <span className="text-xs font-bold text-accent bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/50">
+                      {streakCount}d Streak 🔥
+                    </span>
+                  </Link>
+                  <Link
+                    href="/applications"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
+                  >
+                    <Briefcase className="h-4 w-4 text-text-secondary" />
+                    <span>My Applications</span>
+                  </Link>
+                  <Link
+                    href="/resume-center"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
+                  >
+                    <FileCheck2 className="h-4 w-4 text-text-secondary" />
+                    <span>ATS Resume Center</span>
+                  </Link>
+                  <Link
+                    href="/profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
+                  >
+                    <UserIcon className="h-4 w-4 text-primary" />
+                    <span>My Profile & Resume</span>
+                  </Link>
+                </div>
+              )}
+
+              {/* Common Profile & Logout Footer */}
+              <div className="border-t border-border pt-2 mt-2 space-y-1">
+                {user.role !== "seeker" && (
+                  <Link
+                    href="/profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-primary hover:bg-surface-alt"
+                  >
+                    <UserIcon className="h-4 w-4 text-text-secondary" />
+                    <span>My Account</span>
+                  </Link>
+                )}
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
                     handleLogout();
                   }}
-                  className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-error hover:bg-rose-50"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-error hover:bg-rose-50 text-left transition-colors"
                 >
-                  Log Out
+                  <LogOut className="h-4 w-4" />
+                  <span>Sign Out</span>
                 </button>
               </div>
             </>
           ) : (
-            <div className="pt-2 border-t border-border flex flex-col gap-2">
-              <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="outline" className="w-full">Sign In</Button>
+            <div className="space-y-2">
+              <Link
+                href="/jobs"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
+              >
+                <Briefcase className="h-4 w-4 text-text-secondary" />
+                <span>Browse Jobs</span>
               </Link>
-              <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="primary" className="w-full">Get Started Free</Button>
+              <Link
+                href="/mcq"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Flame className="h-4 w-4 text-accent" />
+                  <span>Daily MCQ Challenge</span>
+                </div>
+                <span className="text-xs font-bold text-accent bg-amber-50 px-2 py-0.5 rounded-full">
+                  {streakCount}d Streak
+                </span>
               </Link>
+              <div className="pt-2 border-t border-border flex flex-col gap-2">
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="outline" className="w-full">Sign In</Button>
+                </Link>
+                <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="primary" className="w-full">Get Started Free</Button>
+                </Link>
+              </div>
             </div>
           )}
         </div>

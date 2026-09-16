@@ -112,7 +112,7 @@ $${profile?.salaryExpectation?.min?.toLocaleString()} - $${profile?.salaryExpect
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-xs text-text-secondary leading-relaxed">
-                The original source PDF used for Groq AI extraction and shared with recruiters upon direct application.
+                The original source PDF used for AI extraction and shared with recruiters upon direct application.
               </p>
               {profile?.resumeUrl ? (
                 <div className="rounded-xl border border-border p-3 bg-surface-alt flex items-center justify-between text-xs">

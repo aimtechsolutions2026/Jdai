@@ -15,7 +15,7 @@ export async function uploadFileToCloudinary(
       
       const formData = new FormData();
       formData.append("file", base64Data);
-      formData.append("upload_preset", "talentpulse_resumes");
+      formData.append("upload_preset", "codifypro_resumes");
       formData.append("folder", folder);
 
       const res = await fetch(

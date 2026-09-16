@@ -95,7 +95,7 @@ function CandidateSearchContent() {
           Engineering Talent Search
         </h1>
         <p className="text-sm text-text-secondary mt-1">
-          Target candidates with verified experience, continuous daily challenge streaks, and clean Groq-parsed resumes.
+          Target candidates with verified experience, continuous daily challenge streaks, and clean AI-parsed resumes.
         </p>
       </div>
 
@@ -271,7 +271,7 @@ function CandidateSearchContent() {
             <div className="space-y-1">
               <div className="text-xs text-text-secondary flex items-center gap-2">
                 <Mail className="h-3.5 w-3.5 text-primary" />
-                <span>{inspectingCandidate?.email || "candidate@talentpulse.ai"}</span>
+                <span>{inspectingCandidate?.email || "candidate@codifypro.ai"}</span>
               </div>
               <div className="text-xs text-text-secondary flex items-center gap-2">
                 <Phone className="h-3.5 w-3.5 text-primary" />

@@ -15,24 +15,24 @@ export function Footer() {
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
                   <span className="text-lg font-bold tracking-tight text-secondary">
-                    TalentPulse
+                    CodifyPro
                   </span>
                   <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary border border-blue-200/60">
                     AI
                   </span>
                 </div>
                 <span className="text-[10px] font-medium text-text-secondary leading-none">
-                  by JDAI
+                  by Aimtech Solutions
                 </span>
               </div>
             </Link>
             <p className="text-text-secondary max-w-sm text-sm leading-relaxed">
-              The AI-first career acceleration platform. Groq-powered resume parsing, daily DSA & aptitude practice, and rapid recruiter discovery.
+              The AI-first career acceleration platform. AI-powered resume parsing, daily DSA & aptitude practice, and rapid recruiter discovery.
             </p>
             <div className="flex items-center gap-3 pt-2">
               <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 bg-slate-50 px-2.5 py-1 rounded-full border border-slate-200">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                Groq Llama 3.3 Engine Live
+                AI Engine Live
               </span>
             </div>
           </div>
@@ -122,7 +122,7 @@ export function Footer() {
 
         <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-text-secondary">
-            © {new Date().getFullYear()} TalentPulse (JDAI Platform). All rights reserved.
+            © {new Date().getFullYear()} CodifyPro (Aimtech Solutions Platform). All rights reserved.
           </p>
           <div className="flex items-center gap-6 text-xs text-text-secondary">
             <span>Privacy Policy</span>

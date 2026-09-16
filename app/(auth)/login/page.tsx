@@ -35,7 +35,7 @@ function LoginForm() {
       }
 
       if (data.user.role === "admin") {
-        router.push("/admin/ingest");
+        router.push(returnUrl !== "/dashboard" ? returnUrl : "/admin");
       } else if (data.user.role === "recruiter") {
         router.push("/recruiter/dashboard");
       } else {
@@ -54,10 +54,10 @@ function LoginForm() {
     setLoading(true);
     const demoEmail =
       role === "admin"
-        ? "admin@talentpulse.ai"
+        ? "admin@codifypro.ai"
         : role === "recruiter"
-        ? "recruiter@talentpulse.ai"
-        : "seeker@talentpulse.ai";
+        ? "recruiter@codifypro.ai"
+        : "seeker@codifypro.ai";
 
     try {
       const res = await fetch("/api/auth/login", {
@@ -68,7 +68,7 @@ function LoginForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login failed");
 
-      if (role === "admin") router.push("/admin/ingest");
+      if (role === "admin") router.push("/admin");
       else if (role === "recruiter") router.push("/recruiter/dashboard");
       else router.push("/dashboard");
       router.refresh();
@@ -88,7 +88,7 @@ function LoginForm() {
           </div>
           <div className="flex items-center gap-1.5">
             <span className="text-xl font-bold tracking-tight text-secondary">
-              TalentPulse
+              CodifyPro
             </span>
             <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary border border-blue-200">
               AI

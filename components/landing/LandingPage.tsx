@@ -24,6 +24,112 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Footer } from "@/components/layout/Footer";
 
+const TOP_COMPANIES = [
+  {
+    name: "Google",
+    icon: (
+      <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+        <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+        <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+        <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+      </svg>
+    ),
+  },
+  {
+    name: "Microsoft",
+    icon: (
+      <svg className="h-4.5 w-4.5 shrink-0" viewBox="0 0 21 21">
+        <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
+        <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
+        <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
+        <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+      </svg>
+    ),
+  },
+  {
+    name: "Amazon",
+    icon: (
+      <svg className="h-5 w-5 shrink-0 text-[#FF9900]" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M13.6 14.4c-2.4 1.8-5.8 2.7-8.8 2.7-4.2 0-7.9-1.5-10.8-4-.2-.2 0-.5.2-.4 3.1 1.8 6.9 2.9 10.7 2.9 2.6 0 5.6-.6 8.3-2 .4-.2.7.2.4.8z"/>
+        <path d="M14.7 13.2c-.3-.4-1.9-.2-2.6-.1-.2 0-.3-.2-.1-.3 1.3-.9 3.5-.6 3.8-.2.3.4-.1 2.5-1.3 3.5-.2.1-.3 0-.3-.1.2-.7.8-2.4.5-2.8z"/>
+      </svg>
+    ),
+  },
+  {
+    name: "Stripe",
+    icon: (
+      <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="#635BFF">
+        <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C17.652.71 15.023.187 12.392.187 6.786.187 2.87 3.12 2.87 7.747c0 4.606 3.96 5.86 7.64 7.207 2.479.914 3.327 1.666 3.327 2.666 0 .973-.836 1.487-2.257 1.487-2.637 0-5.46-1.168-7.398-2.261l-.899 5.568c2.052 1.05 5.097 1.7 8.093 1.7 5.862 0 10.024-2.842 10.024-7.669 0-4.84-3.99-6.09-7.424-7.305z" />
+      </svg>
+    ),
+  },
+  {
+    name: "Vercel",
+    icon: (
+      <svg className="h-4.5 w-4.5 shrink-0 fill-black" viewBox="0 0 24 24">
+        <path d="M12 2L24 22H0L12 2Z" />
+      </svg>
+    ),
+  },
+  {
+    name: "Linear",
+    icon: (
+      <svg className="h-4.5 w-4.5 shrink-0 text-[#5E6AD2]" viewBox="0 0 24 24" fill="none">
+        <path d="M3.5 18.5L18.5 3.5M3.5 12L12 3.5M12 20.5L20.5 12M6.5 20.5L20.5 6.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    name: "Ramp",
+    icon: (
+      <svg className="h-5 w-5 shrink-0 fill-[#16A34A]" viewBox="0 0 24 24">
+        <path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm13 2.5a2.5 2.5 0 100 5 2.5 2.5 0 000-5z" />
+      </svg>
+    ),
+  },
+  {
+    name: "Supabase",
+    icon: (
+      <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none">
+        <path d="M21.362 9.354H12V.304a.6.6 0 00-1.024-.424L.67 10.186a1.2 1.2 0 00.849 2.048H12v9.05a.6.6 0 001.024.424l10.305-10.306a1.2 1.2 0 00-.967-2.048z" fill="#3ECF8E"/>
+      </svg>
+    ),
+  },
+  {
+    name: "Datadog",
+    icon: (
+      <svg className="h-5 w-5 shrink-0 fill-[#632CA6]" viewBox="0 0 24 24">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-6h2v6zm4 0h-2v-6h2v6z" />
+      </svg>
+    ),
+  },
+  {
+    name: "Airbnb",
+    icon: (
+      <svg className="h-5 w-5 shrink-0 fill-[#FF5A5F]" viewBox="0 0 24 24">
+        <path d="M12 2c-3.1 0-5.4 2.4-5.4 5.5 0 3.7 4 9.1 5.4 10.9 1.4-1.8 5.4-7.2 5.4-10.9C17.4 4.4 15.1 2 12 2zm0 7.5c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+      </svg>
+    ),
+  },
+  {
+    name: "Shopify",
+    icon: (
+      <svg className="h-5 w-5 shrink-0 fill-[#95BF47]" viewBox="0 0 24 24">
+        <path d="M15.8 4.2c-.1 0-.2.1-.3.2l-1.9 4.3 3.9.7-1.7-5.2zm-2.8 4.1L14.7 3c-.1-.3-.4-.5-.7-.5-.1 0-.3 0-.4.1L8.5 5.5l4.5 2.8zm-5.4-1.5l1.9-1.2-3.1-.7 1.2 1.9zm-.8.6l-3.3 2.1c-.2.1-.3.4-.2.6l4.1 13.1 3.8-2.4-4.4-13.4zm4.7 13.9l6.5-4.1-3.6-11.4-4.7 3 1.8 12.5z"/>
+      </svg>
+    ),
+  },
+  {
+    name: "Netflix",
+    icon: (
+      <svg className="h-5 w-5 shrink-0 fill-[#E50914]" viewBox="0 0 24 24">
+        <path d="M4 2h4.5l5.5 13V2h4v20h-4.5L8 9v13H4V2z"/>
+      </svg>
+    ),
+  },
+];
+
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [activeTab, setActiveTab] = useState<"seeker" | "recruiter">("seeker");
@@ -31,7 +137,7 @@ export default function LandingPage() {
   const faqs = [
     {
       q: "How does the AI Resume Parsing work?",
-      a: "Upload your resume in PDF format. Our Groq-powered Llama 3.3 pipeline extracts your work history, skills, education, certifications, and target salary in under 3 seconds. You can review and edit every field before your profile goes live.",
+      a: "Upload your resume in PDF format. Our AI pipeline extracts your work history, skills, education, certifications, and target salary in under 3 seconds. You can review and edit every field before your profile goes live.",
     },
     {
       q: "What is the Daily MCQ and how do streaks work?",
@@ -39,14 +145,14 @@ export default function LandingPage() {
     },
     {
       q: "How can recruiters discover my profile?",
-      a: "Recruiters use TalentPulse's multi-tag skill filters to pinpoint candidates matching their exact stack, experience depth, and location. Your profile is surfaced organically based on verified skills and MCQ activity.",
+      a: "Recruiters use CodifyPro's multi-tag skill filters to pinpoint candidates matching their exact stack, experience depth, and location. Your profile is surfaced organically based on verified skills and MCQ activity.",
     },
     {
       q: "Can admins ingest jobs from any external source?",
-      a: "Yes. TalentPulse's Admin Ingestion Engine allows admins to paste raw JD text or external job URLs. Groq AI automatically extracts company, role, salary range, tags, and apply links into a structured draft for 1-click publishing.",
+      a: "Yes. CodifyPro's Admin Ingestion Engine allows admins to paste raw JD text or external job URLs. AI automatically extracts company, role, salary range, tags, and apply links into a structured draft for 1-click publishing.",
     },
     {
-      q: "Is TalentPulse completely free for job seekers?",
+      q: "Is CodifyPro completely free for job seekers?",
       a: "Yes! Job seekers get unlimited resume parsing, daily MCQ practice, job applications, and profile visibility for free. Recruiters pay a flexible subscription for high-volume candidate search and direct outreach.",
     },
   ];
@@ -63,7 +169,7 @@ export default function LandingPage() {
             {/* Announcement Pill */}
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50/80 px-3.5 py-1.5 text-xs font-semibold text-primary shadow-subtle backdrop-blur-sm">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
-              <span>Groq Llama-3.3 Extraction Engine Live</span>
+              <span>AI Extraction Engine Live</span>
               <span className="text-slate-300">•</span>
               <span className="text-text-secondary font-normal">Sub-second parsing</span>
             </div>
@@ -97,22 +203,34 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            {/* Quick Demo Logins Note */}
-            <div className="flex items-center justify-center gap-4 text-xs text-text-secondary pt-2">
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="h-4 w-4 text-success" />
-                No credit card required
-              </span>
-              <span className="text-slate-300">•</span>
-              <span className="flex items-center gap-1.5">
-                <Zap className="h-4 w-4 text-accent" />
-                Under 60s setup
-              </span>
-              <span className="text-slate-300">•</span>
-              <span className="flex items-center gap-1.5">
-                <Flame className="h-4 w-4 text-accent" />
-                Daily DSA Gamification
-              </span>
+            {/* Value Props & Trust Badges */}
+            <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-4 pt-4">
+              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200/90 shadow-xs hover:border-emerald-300 hover:shadow-sm transition-all">
+                <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 shrink-0">
+                  <CheckCircle2 className="h-4 w-4 sm:h-4.5 sm:w-4.5 stroke-[2.5]" />
+                </div>
+                <span className="text-xs sm:text-sm font-semibold text-slate-700 whitespace-nowrap">
+                  No credit card required
+                </span>
+              </div>
+
+              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200/90 shadow-xs hover:border-amber-300 hover:shadow-sm transition-all">
+                <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-amber-50 text-amber-600 shrink-0">
+                  <Zap className="h-4 w-4 sm:h-4.5 sm:w-4.5 fill-amber-400 stroke-[2]" />
+                </div>
+                <span className="text-xs sm:text-sm font-semibold text-slate-700 whitespace-nowrap">
+                  Under 60s setup
+                </span>
+              </div>
+
+              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200/90 shadow-xs hover:border-rose-300 hover:shadow-sm transition-all">
+                <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-rose-50 text-rose-500 shrink-0">
+                  <Flame className="h-4 w-4 sm:h-4.5 sm:w-4.5 fill-rose-500" />
+                </div>
+                <span className="text-xs sm:text-sm font-semibold text-slate-700 whitespace-nowrap">
+                  Daily DSA Gamification
+                </span>
+              </div>
             </div>
           </div>
 
@@ -124,7 +242,7 @@ export default function LandingPage() {
                 <div className="h-3 w-3 rounded-full bg-amber-400" />
                 <div className="h-3 w-3 rounded-full bg-emerald-400" />
                 <span className="ml-2 text-xs font-medium text-text-secondary">
-                  talentpulse.ai/dashboard
+                  codifypro.ai/dashboard
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -152,7 +270,7 @@ export default function LandingPage() {
                     Senior Full-Stack Engineer
                   </div>
                   <div className="text-xs text-text-secondary">
-                    Extracted from resume.pdf via Groq
+                    Extracted from resume.pdf via AI
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1 pt-1">
@@ -209,17 +327,30 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 2. Trusted By / Social Proof Logos */}
-      <section className="border-y border-border bg-white py-10">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-xs font-bold uppercase tracking-widest text-text-secondary mb-6">
-            Engineers placed at top tech enterprises & high-growth startups
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16 opacity-60 grayscale hover:grayscale-0 transition-all">
-            {["Vercel", "Stripe", "Linear", "Ramp", "Supabase", "Datadog"].map((brand) => (
-              <span key={brand} className="text-base sm:text-lg font-extrabold tracking-tight text-secondary">
-                {brand}
-              </span>
+      {/* 2. Trusted By / Social Proof Logos Marquee */}
+      <section className="border-y border-border bg-white py-8 sm:py-10 overflow-hidden">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-5 sm:mb-6">
+          <div className="flex items-center justify-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+            <p className="text-center text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-600">
+              Hiring from Top Companies & High-Growth Startups
+            </p>
+          </div>
+        </div>
+
+        {/* Seamless Infinite Slider (Right to Left) */}
+        <div className="relative w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,white_8%,white_92%,transparent)]">
+          <div className="animate-marquee flex items-center gap-4 sm:gap-6 py-1">
+            {TOP_COMPANIES.concat(TOP_COMPANIES).map((company, index) => (
+              <div
+                key={`${company.name}-${index}`}
+                className="flex items-center gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl bg-slate-50/90 border border-slate-200/70 hover:border-primary/40 hover:bg-white hover:shadow-md transition-all shrink-0 cursor-default group select-none"
+              >
+                {company.icon}
+                <span className="text-sm sm:text-base font-bold tracking-tight text-slate-800 group-hover:text-primary transition-colors">
+                  {company.name}
+                </span>
+              </div>
             ))}
           </div>
         </div>
@@ -250,7 +381,7 @@ export default function LandingPage() {
                 1-Click AI Resume Parsing
               </h3>
               <p className="text-sm text-text-secondary leading-relaxed">
-                Drop your PDF resume. Groq Llama 3.3 extracts experience, education, skills, and certifications into an editable profile instantly.
+                Drop your PDF resume. AI extracts experience, education, skills, and certifications into an editable profile instantly.
               </p>
             </div>
 
@@ -289,7 +420,7 @@ export default function LandingPage() {
                 AI Ingestion Engine
               </h3>
               <p className="text-sm text-text-secondary leading-relaxed">
-                Admins paste raw JD text or external job links. Groq automatically structures salary, role, tags, and apply links in seconds.
+                Admins paste raw JD text or external job links. AI automatically structures salary, role, tags, and apply links in seconds.
               </p>
             </div>
           </div>
@@ -304,7 +435,7 @@ export default function LandingPage() {
               Streamlined Workflow
             </span>
             <h2 className="text-3xl font-extrabold text-secondary tracking-tight">
-              How TalentPulse Works
+              How CodifyPro Works
             </h2>
             <div className="inline-flex rounded-xl bg-surface-alt p-1 border border-border mt-4">
               <button
@@ -338,7 +469,7 @@ export default function LandingPage() {
                 </div>
                 <h4 className="text-lg font-bold text-text-primary">Upload Resume PDF</h4>
                 <p className="text-sm text-text-secondary leading-relaxed">
-                  Groq AI reads your PDF, extracts all work experiences, universities, and tech stack tags, and auto-fills your profile.
+                  AI reads your PDF, extracts all work experiences, universities, and tech stack tags, and auto-fills your profile.
                 </p>
               </div>
               <div className="space-y-3">
@@ -368,7 +499,7 @@ export default function LandingPage() {
                 </div>
                 <h4 className="text-lg font-bold text-text-primary">Ingest Jobs via AI</h4>
                 <p className="text-sm text-text-secondary leading-relaxed">
-                  Paste raw text or job URLs. Groq AI normalizes company name, salary ranges, location, and key requirements automatically.
+                  Paste raw text or job URLs. AI normalizes company name, salary ranges, location, and key requirements automatically.
                 </p>
               </div>
               <div className="space-y-3">

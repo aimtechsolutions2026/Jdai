@@ -13,7 +13,7 @@ let memoryMCQs: any[] = [...SEED_MCQS];
 let memoryUsers: any[] = [
   {
     _id: "66e000000000000000000001",
-    email: "seeker@talentpulse.ai",
+    email: "seeker@codifypro.ai",
     passwordHash: "$2a$10$wJjK...mockhash",
     name: "Alex Morgan",
     role: "seeker",
@@ -24,7 +24,7 @@ let memoryUsers: any[] = [
   },
   {
     _id: "66e000000000000000000002",
-    email: "recruiter@talentpulse.ai",
+    email: "recruiter@codifypro.ai",
     passwordHash: "$2a$10$wJjK...mockhash",
     name: "Sarah Jenkins (Recruiter)",
     role: "recruiter",
@@ -35,7 +35,7 @@ let memoryUsers: any[] = [
   },
   {
     _id: "66e000000000000000000003",
-    email: "admin@talentpulse.ai",
+    email: "admin@codifypro.ai",
     passwordHash: "$2a$10$wJjK...mockhash",
     name: "System Admin",
     role: "admin",
@@ -50,7 +50,7 @@ let memoryProfiles: any[] = [
   {
     userId: "66e000000000000000000001",
     name: "Alex Morgan",
-    email: "seeker@talentpulse.ai",
+    email: "seeker@codifypro.ai",
     phone: "+1 (555) 349-2041",
     location: "San Francisco, CA",
     pincode: "94105",
@@ -82,7 +82,8 @@ let memoryProfiles: any[] = [
       {
         name: "AWS Solutions Architect Associate",
         issuer: "Amazon Web Services",
-        url: "",
+        certificateId: "AWS-SAA-802319",
+        url: "https://aws.amazon.com/verification",
         date: "2023",
       },
     ],
@@ -133,7 +134,40 @@ SEED_CANDIDATES.forEach((cand, idx) => {
   });
 });
 
-let memoryApplications: any[] = [];
+let memoryApplications: any[] = [
+  {
+    _id: "66e03c111111111111110001",
+    userId: "66e000000000000000000001",
+    jobId: memoryJobs[0]?._id || "66e01a111111111111110001",
+    resumeUrlUsed: "https://example.com/resumes/alex-morgan.pdf",
+    status: "reviewing",
+    appliedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2),
+  },
+  {
+    _id: "66e03c111111111111110002",
+    userId: "66e000000000000000000001",
+    jobId: memoryJobs[1]?._id || "66e01a111111111111110002",
+    resumeUrlUsed: "https://example.com/resumes/alex-morgan.pdf",
+    status: "shortlisted",
+    appliedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5),
+  },
+  {
+    _id: "66e03c111111111111110003",
+    userId: "66e000000000000000000014",
+    jobId: memoryJobs[2]?._id || "66e01a111111111111110003",
+    resumeUrlUsed: "https://example.com/resumes/priya-sharma.pdf",
+    status: "applied",
+    appliedAt: new Date(Date.now() - 1000 * 60 * 60 * 12),
+  },
+  {
+    _id: "66e03c111111111111110004",
+    userId: "66e000000000000000000015",
+    jobId: memoryJobs[0]?._id || "66e01a111111111111110001",
+    resumeUrlUsed: "https://example.com/resumes/marcus-chen.pdf",
+    status: "interviewing",
+    appliedAt: new Date(Date.now() - 1000 * 60 * 60 * 36),
+  },
+];
 let memoryAttempts: any[] = [];
 
 // JOB REPOSITORY
@@ -330,6 +364,35 @@ export const UserRepository = {
     }
     return memoryUsers;
   },
+
+  async update(id: string, updates: any) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const user = await User.findByIdAndUpdate(id, updates, { new: true }).lean();
+        if (user) return user;
+      } catch {}
+    }
+    const idx = memoryUsers.findIndex((u) => String(u._id) === id);
+    if (idx !== -1) {
+      memoryUsers[idx] = { ...memoryUsers[idx], ...updates };
+      return memoryUsers[idx];
+    }
+    return null;
+  },
+
+  async delete(id: string) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        await User.findByIdAndDelete(id);
+        await SeekerProfile.deleteOne({ userId: id });
+      } catch {}
+    }
+    memoryUsers = memoryUsers.filter((u) => String(u._id) !== id);
+    memoryProfiles = memoryProfiles.filter((p) => String(p.userId) !== id);
+    return true;
+  },
 };
 
 export const ProfileRepository = {
@@ -455,10 +518,64 @@ export const McqRepository = {
     memoryMCQs.push(newQ);
     return newQ;
   },
+
+  async update(id: string, updates: any) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const q = await MCQQuestion.findByIdAndUpdate(id, updates, { new: true }).lean();
+        if (q) return q;
+      } catch {}
+    }
+    const idx = memoryMCQs.findIndex((q) => String(q._id) === id);
+    if (idx !== -1) {
+      memoryMCQs[idx] = { ...memoryMCQs[idx], ...updates };
+      return memoryMCQs[idx];
+    }
+    return null;
+  },
+
+  async delete(id: string) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        await MCQQuestion.findByIdAndDelete(id);
+      } catch {}
+    }
+    memoryMCQs = memoryMCQs.filter((q) => String(q._id) !== id);
+    return true;
+  },
 };
 
 // APPLICATION REPOSITORY
 export const ApplicationRepository = {
+  async findAll() {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const apps = await Application.find()
+          .populate("jobId")
+          .populate("userId")
+          .sort({ appliedAt: -1 })
+          .lean();
+        if (apps && apps.length > 0) return apps;
+      } catch {}
+    }
+    // Memory fallback populated
+    return memoryApplications.map((app) => {
+      const job = memoryJobs.find((j) => String(j._id) === String(app.jobId)) || {
+        role: "Software Engineer",
+        companyName: "Tech Corp",
+        location: "Remote",
+      };
+      const user = memoryUsers.find((u) => String(u._id) === String(app.userId)) || {
+        name: "Applicant",
+        email: "candidate@codifypro.ai",
+      };
+      return { ...app, job, user };
+    });
+  },
+
   async findByUser(userId: string) {
     const conn = await connectToDatabase();
     if (conn) {
@@ -491,6 +608,33 @@ export const ApplicationRepository = {
     };
     memoryApplications.unshift(newApp);
     return newApp;
+  },
+
+  async update(id: string, updates: any) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const app = await Application.findByIdAndUpdate(id, updates, { new: true }).lean();
+        if (app) return app;
+      } catch {}
+    }
+    const idx = memoryApplications.findIndex((a) => String(a._id) === id);
+    if (idx !== -1) {
+      memoryApplications[idx] = { ...memoryApplications[idx], ...updates };
+      return memoryApplications[idx];
+    }
+    return null;
+  },
+
+  async delete(id: string) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        await Application.findByIdAndDelete(id);
+      } catch {}
+    }
+    memoryApplications = memoryApplications.filter((a) => String(a._id) !== id);
+    return true;
   },
 };
 

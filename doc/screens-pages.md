@@ -1,4 +1,4 @@
-# screens-pages.md — Screens & Page Flows
+# screens-pages.md — CodifyPro Screens & Page Flows (Aimtech Solutions)
 
 ## 1. Public / Auth
 | Screen | Description |
@@ -80,7 +80,7 @@
 
 ### 4.1 Job Ingestion Hub
 - Tabs: "From Apify/Source", "Paste Link", "Paste Text"
-- **Paste Link/Text flow**: input box → "Extract with AI" button → Groq-parsed structured preview form (editable: company name, salary range, JD, location, apply link) → "Publish" button
+- **Paste Link/Text flow**: input box → "Extract with AI" button → AI-parsed structured preview form (editable: company name, salary range, JD, location, apply link) → "Publish" button
 - **Apify/Source tab**: list of pending scraped jobs (queue) awaiting the same review-and-publish step
 
 ### 4.2 Job Management

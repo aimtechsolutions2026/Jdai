@@ -58,11 +58,16 @@ const config: Config = {
       animation: {
         "pulse-subtle": "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
         "flame-bounce": "flame 1.5s ease-in-out infinite alternate",
+        marquee: "marquee 28s linear infinite",
       },
       keyframes: {
         flame: {
           "0%": { transform: "scale(1) rotate(-2deg)" },
           "100%": { transform: "scale(1.1) rotate(3deg)" },
+        },
+        marquee: {
+          "0%": { transform: "translateX(0%)" },
+          "100%": { transform: "translateX(-50%)" },
         },
       },
     },

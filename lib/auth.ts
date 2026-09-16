@@ -3,10 +3,10 @@ import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "talentpulse-insecure-dev-secret-key-32charsmin"
+  process.env.JWT_SECRET || "codifypro-insecure-dev-secret-key-32charsmin"
 );
 
-export const AUTH_COOKIE_NAME = "talentpulse_token";
+export const AUTH_COOKIE_NAME = "codifypro_token";
 
 export interface TokenPayload {
   userId: string;

@@ -11,11 +11,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "TalentPulse AI | Next-Gen AI Career & Job Discovery Platform",
+  title: "CodifyPro AI | Next-Gen AI Career & Job Discovery Platform",
   description:
-    "AI-powered job platform connecting top talent with high-growth companies. Groq-driven resume parsing, daily DSA & aptitude practice, and instant recruiter discovery.",
-  keywords: ["AI Job Search", "Resume Parser", "Tech Jobs", "Recruiter Search", "DSA MCQ Practice", "Groq AI"],
-  authors: [{ name: "TalentPulse Team" }],
+    "AI-powered job platform connecting top talent with high-growth companies. AI-driven resume parsing, daily DSA & aptitude practice, and instant recruiter discovery.",
+  keywords: ["AI Job Search", "Resume Parser", "Tech Jobs", "Recruiter Search", "DSA MCQ Practice", "AI"],
+  authors: [{ name: "CodifyPro Team" }],
 };
 
 export const viewport: Viewport = {
@@ -34,7 +34,7 @@ export default function RootLayout({
     <html lang="en" className={inter.variable}>
       <body className="min-h-screen bg-surface-alt text-text-primary antialiased flex flex-col font-sans">
         <Navbar />
-        <main className="flex-1 pb-16 md:pb-0">{children}</main>
+        <main className="flex-1">{children}</main>
         <MobileBottomNav />
       </body>
     </html>

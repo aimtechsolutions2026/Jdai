@@ -1,12 +1,12 @@
-# TalentPulse AI (JDAI)
+# CodifyPro AI (Aimtech Solutions)
 
 > **Next-Generation AI Career & Job Discovery Platform**  
-> Built for high-impact software engineers, modern tech recruiters, and engineering teams. Powered by Groq Llama-3.3, MongoDB, Redis, and Next.js App Router.
+> Built for high-impact software engineers, modern tech recruiters, and engineering teams. Powered by AI, MongoDB, Redis, and Next.js App Router.
 
 [![Next.js](https://img.shields.io/badge/Next.js-14.2-black?style=flat&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3.4-38bdf8?style=flat&logo=tailwind-css)](https://tailwindcss.com/)
-[![Groq AI](https://img.shields.io/badge/AI-Groq%20Llama--3.3-orange?style=flat)](https://groq.com/)
+[![AI Engine](https://img.shields.io/badge/AI-Inference%20Engine-orange?style=flat)](https://aimtechsolutions.com/)
 [![MongoDB](https://img.shields.io/badge/Database-MongoDB-green?style=flat&logo=mongodb)](https://www.mongodb.com/)
 [![Redis](https://img.shields.io/badge/Cache-Redis%20%2F%20Upstash-red?style=flat&logo=redis)](https://upstash.com/)
 
@@ -14,17 +14,17 @@
 
 ## 🌟 Executive Overview
 
-**TalentPulse AI** (code-named **JDAI**) is an enterprise-grade SaaS platform engineered to eliminate friction in modern technical hiring:
-- **For Job Seekers**: 1-click Groq AI resume parsing (PDF to structured profile), daily high-yield DSA & aptitude challenges with streak gamification, 1-click Easy Apply, and ATS-optimized resume exports.
+**CodifyPro AI** (developed by **Aimtech Solutions**) is an enterprise-grade SaaS platform engineered to eliminate friction in modern technical hiring:
+- **For Job Seekers**: 1-click AI resume parsing (PDF to structured profile), daily high-yield DSA & aptitude challenges with streak gamification, 1-click Easy Apply, and ATS-optimized resume exports.
 - **For Recruiters**: Multi-skill talent search filtering by verified tech stack, experience depth, continuous daily challenge activity, and direct resume PDF access.
-- **For Admins**: Multi-source AI Job Ingestion engine supporting raw text and external job URLs with structured Groq extraction and an interactive review/publish workflow.
+- **For Admins**: Multi-source AI Job Ingestion engine supporting raw text and external job URLs with structured AI extraction and an interactive review/publish workflow.
 
 ---
 
 ## ✨ Core Feature Set
 
 ### 1. Job Seeker Hub
-- **Groq AI Resume Parsing (`/profile`)**: Drag-and-drop PDF-only intake. Server text extraction via `pdf-parse` and Groq Llama 3.3 extraction validated strictly against `zod` schemas.
+- **AI Resume Parsing (`/profile`)**: Drag-and-drop PDF-only intake. Server text extraction via `pdf-parse` and AI extraction validated strictly against `zod` schemas.
 - **Profile Completeness Tracker**: Real-time completeness score (0–100%) nudging users toward verified candidate status.
 - **Editable Profile Management**: Modular sections for work experience, education, interactive skill chips, certifications, and target salary ranges.
 - **Resume Center (`/resume-center`)**: Direct download of original PDF resumes and instant generation/compilation of clean single-column ATS-friendly resumes.
@@ -45,7 +45,7 @@
 ### 4. Admin Job Ingestion & Management (`/admin/ingest`, `/admin/jobs`)
 - **Multi-Source Ingestion**:
   - **Paste Raw Text**: Extracts role, company, salary, experience, and sanitized HTML descriptions from unstructured text.
-  - **Paste External Link**: Scrapes job page HTML, cleans content, and normalizes fields via Groq.
+  - **Paste External Link**: Scrapes job page HTML, cleans content, and normalizes fields via AI.
   - **Apify Scraper Queue**: Stubbed webhook receiver ready for scheduled scraper actors.
 - **Review & Publish Workflow**: Admin can review and refine all AI-extracted fields before publishing live.
 - **MCQ Question Bank (`/admin/mcq-bank`)**: Full CRUD management for challenge questions with category tags and difficulty levels.
@@ -61,7 +61,7 @@
 | **Styling & UI** | Tailwind CSS + Lucide Icons | Design tokens matching `theme.md` (clean, zero clutter) |
 | **Database** | MongoDB via Mongoose | Flexible document store for Users, Profiles, Jobs, Applications, MCQs |
 | **Cache & Realtime** | Redis (Upstash / ioredis) | Daily attempt lockout, streak counters, and rate limiting |
-| **AI Inference** | Groq API (Llama 3.3 70B) | Low-latency structured JSON resume parsing and job extraction |
+| **AI Inference** | AI Inference Engine | Low-latency structured JSON resume parsing and job extraction |
 | **Validation** | Zod | Runtime schema validation of all AI outputs and forms |
 | **File Storage** | Cloudinary | Cloud PDF/image storage with local data URI fallback |
 | **Authentication** | JWT (`jose`) + `bcryptjs` | Role-based route protection via Edge Middleware |
@@ -71,7 +71,6 @@
 ## 📁 Repository Structure
 
 ```
-d:\JDAI/
 ├── app/
 │   ├── (auth)/
 │   │   ├── login/page.tsx               # Sign in + 1-click demo accounts
@@ -96,7 +95,7 @@ d:\JDAI/
 │   ├── api/
 │   │   ├── auth/                        # login, signup, me, logout
 │   │   ├── profile/                     # GET / PUT seeker profile
-│   │   ├── resume/upload/               # PDF upload & Groq AI parsing
+│   │   ├── resume/upload/               # PDF upload & AI parsing
 │   │   ├── jobs/                        # list, detail, ingest link/text
 │   │   ├── applications/                # Easy Apply & my applications
 │   │   ├── mcq/                         # today, submit, question bank
@@ -113,7 +112,7 @@ d:\JDAI/
 ├── lib/
 │   ├── db.ts                            # Mongoose connection with caching
 │   ├── redis.ts                         # Redis client with in-memory TTL fallback
-│   ├── groq.ts                          # Groq Llama 3.3 client & heuristic fallbacks
+│   ├── groq.ts                          # AI client & heuristic fallbacks
 │   ├── auth.ts                          # JWT sign/verify with jose & bcryptjs
 │   ├── zod-schemas.ts                   # Strict schemas for AI extraction
 │   ├── repositories.ts                  # Repository layer bridging Mongo & memory
@@ -143,7 +142,7 @@ npm install
 Create a `.env.local` file in the project root (see `.env.example`):
 ```env
 # Database
-MONGODB_URI=mongodb://localhost:27017/talentpulse
+MONGODB_URI=mongodb://localhost:27017/codifypro
 
 # Redis (Upstash or local Redis)
 REDIS_URL=redis://localhost:6379
@@ -151,10 +150,10 @@ UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 
 # Authentication
-JWT_SECRET=super-secret-jwt-key-talentpulse-2026
+JWT_SECRET=super-secret-jwt-key-codifypro-2026
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
-# Groq AI (Optional: smart fallback active if unset)
+# AI Engine
 GROQ_API_KEY=
 
 # Cloudinary (Optional: data URI fallback active if unset)
@@ -185,9 +184,9 @@ To test all role workflows without registration, visit **`/login`** and use the 
 
 | Role | Email | Password | Primary Route | Capabilities |
 |---|---|---|---|---|
-| **Job Seeker** | `seeker@talentpulse.ai` | `demopassword123` | `/dashboard` | Upload resume, view ATS format, browse jobs, Easy Apply, solve daily MCQ |
-| **Recruiter** | `recruiter@talentpulse.ai` | `demopassword123` | `/recruiter/dashboard` | Search candidates by skill tags, inspect verified profiles & resumes |
-| **Admin** | `admin@talentpulse.ai` | `demopassword123` | `/admin/ingest` | Paste job text/links for Groq extraction, manage jobs & MCQ bank |
+| **Job Seeker** | `seeker@codifypro.ai` | `demopassword123` | `/dashboard` | Upload resume, view ATS format, browse jobs, Easy Apply, solve daily MCQ |
+| **Recruiter** | `recruiter@codifypro.ai` | `demopassword123` | `/recruiter/dashboard` | Search candidates by skill tags, inspect verified profiles & resumes |
+| **Admin** | `admin@codifypro.ai` | `demopassword123` | `/admin/ingest` | Paste job text/links for AI extraction, manage jobs & MCQ bank |
 
 ---
 
@@ -210,7 +209,7 @@ Next.js Edge Middleware (`middleware.ts`) automatically enforces role-based acce
 | `/api/auth/me` | GET | Authenticated | Current user & profile metadata |
 | `/api/auth/logout` | POST | Authenticated | Clears auth session cookie |
 | `/api/profile` | GET / PUT | Seeker | Fetch and update candidate profile |
-| `/api/resume/upload` | POST | Seeker | PDF upload, text extraction, Groq parsing |
+| `/api/resume/upload` | POST | Seeker | PDF upload, text extraction, AI parsing |
 | `/api/jobs` | GET / POST | Public / Admin | Filter jobs (GET), create job (POST) |
 | `/api/jobs/[id]` | GET / PUT / DELETE | Public / Admin | Retrieve, update, or archive specific job |
 | `/api/jobs/ingest/paste` | POST | Admin | AI extraction from raw job description text |
@@ -228,12 +227,11 @@ Next.js Edge Middleware (`middleware.ts`) automatically enforces role-based acce
 
 ## 🗺️ Roadmap & Phase Phasing
 
-- **Phase 1 (Completed MVP)**: Full Auth, Groq AI Resume Parsing, Seeker Profile, Job Discovery & Easy Apply, Admin Ingestion (paste-text, paste-link), Daily MCQ & Redis streak tracking, Recruiter Candidate Search, Full Landing Page.
+- **Phase 1 (Completed MVP)**: Full Auth, AI Resume Parsing, Seeker Profile, Job Discovery & Easy Apply, Admin Ingestion (paste-text, paste-link), Daily MCQ & Redis streak tracking, Recruiter Candidate Search, Full Landing Page.
 - **Phase 2 (Extension Stubs Ready)**: Automated Apify scraper actor integration, dynamic per-job tailored resume generator via `@react-pdf/renderer`, full XP leaderboard, analytics dashboard.
 - **Phase 3**: In-app notifications, candidate bookmark shortlists, adaptive MCQ difficulty, dark mode toggle.
 
 ---
 
 ## 📄 License
-This project is proprietary software developed for the TalentPulse AI (JDAI) platform.
-
+This project is proprietary software developed for the CodifyPro AI platform by Aimtech Solutions.

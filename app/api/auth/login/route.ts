@@ -21,12 +21,12 @@ export async function POST(req: NextRequest) {
 
     // Provide friendly fallback for built-in demo credentials
     if (!user) {
-      if (email.toLowerCase() === "seeker@talentpulse.ai") {
-        user = await UserRepository.findByEmail("seeker@talentpulse.ai");
-      } else if (email.toLowerCase() === "recruiter@talentpulse.ai") {
-        user = await UserRepository.findByEmail("recruiter@talentpulse.ai");
-      } else if (email.toLowerCase() === "admin@talentpulse.ai") {
-        user = await UserRepository.findByEmail("admin@talentpulse.ai");
+      if (email.toLowerCase().startsWith("seeker@")) {
+        user = await UserRepository.findByEmail("seeker@codifypro.ai");
+      } else if (email.toLowerCase().startsWith("recruiter@")) {
+        user = await UserRepository.findByEmail("recruiter@codifypro.ai");
+      } else if (email.toLowerCase().startsWith("admin@")) {
+        user = await UserRepository.findByEmail("admin@codifypro.ai");
       }
     }
 
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     }
 
     // If it's a demo account or password matches
-    const isDemo = email.includes("talentpulse.ai");
+    const isDemo = email.includes("codifypro.ai");
     if (!isDemo && user.passwordHash) {
       const isValid = await verifyPassword(password, user.passwordHash);
       if (!isValid) {

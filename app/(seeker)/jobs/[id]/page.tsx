@@ -276,7 +276,7 @@ export default function JobDetailPage() {
               </h3>
             </div>
             <p className="text-xs text-text-secondary leading-relaxed">
-              Let Groq AI re-align your profile achievements and inject keywords from this specific JD to maximize your interview odds.
+              Let AI re-align your profile achievements and inject keywords from this specific JD to maximize your interview odds.
             </p>
 
             {!tailoredReady ? (
