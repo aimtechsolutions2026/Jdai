@@ -58,6 +58,7 @@ function fallbackResumeParser(text: string): ResumeParsedData {
       {
         name: "AWS Certified Solutions Architect",
         issuer: "Amazon Web Services",
+        certificateId: "AWS-SAA-802319",
         url: "",
         date: "2023",
       },

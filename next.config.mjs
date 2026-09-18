@@ -24,6 +24,18 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['pdf-parse'],
   },
+  output: process.env.BUILD_STANDALONE === 'true' ? 'standalone' : undefined,
+  async rewrites() {
+    if (process.env.RENDER_BACKEND_URL) {
+      return [
+        {
+          source: '/api/:path*',
+          destination: `${process.env.RENDER_BACKEND_URL}/api/:path*`,
+        },
+      ];
+    }
+    return [];
+  },
 };
 
 export default nextConfig;

@@ -52,8 +52,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getSessionUser();
     if (!session) {
-      // Return guest profile so profile section displays immediately
-      return NextResponse.json({ profile: DEFAULT_GUEST_PROFILE, isGuest: true });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     let profile = await ProfileRepository.findByUserId(session.userId);
@@ -67,13 +66,17 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ profile, isGuest: false });
   } catch (error) {
-    return NextResponse.json({ profile: DEFAULT_GUEST_PROFILE, isGuest: true });
+    return NextResponse.json({ error: "Failed to fetch profile" }, { status: 500 });
   }
 }
 
 export async function PUT(req: NextRequest) {
   try {
     const session = await getSessionUser();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const parsed = ProfileUpdateSchema.safeParse(body);
 
@@ -91,15 +94,6 @@ export async function PUT(req: NextRequest) {
     if (parsed.data.education && parsed.data.education.length > 0) completeness += 15;
     if (parsed.data.certificates && parsed.data.certificates.length > 0) completeness += 10;
     completeness = Math.min(completeness, 100);
-
-    if (!session) {
-      // Guest mode: return simulated updated profile
-      return NextResponse.json({
-        success: true,
-        isGuest: true,
-        profile: { ...parsed.data, profileCompleteness: completeness },
-      });
-    }
 
     const updated = await ProfileRepository.upsertByUserId(session.userId, {
       ...parsed.data,

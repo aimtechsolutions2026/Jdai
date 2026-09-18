@@ -222,59 +222,65 @@ export default function SeekerDashboardPage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {jobs.slice(0, 4).map((job) => (
-            <div
-              key={job._id}
-              className="rounded-xl border border-border bg-white p-5 shadow-card hover:shadow-hover hover:border-slate-300 transition-all flex flex-col justify-between space-y-4"
-            >
-              <div>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-slate-100 border border-border flex items-center justify-center font-bold text-sm text-secondary">
-                      {job.companyName?.[0] || "C"}
-                    </div>
-                    <div>
-                      <h3 className="text-base font-bold text-text-primary hover:text-primary">
-                        <Link href={`/jobs/${job._id}`}>{job.role}</Link>
-                      </h3>
-                      <div className="flex items-center gap-2 text-xs text-text-secondary mt-0.5">
-                        <span className="font-semibold text-text-primary">{job.companyName}</span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {job.location}
-                        </span>
+        {jobs.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border bg-white p-8 text-center text-xs text-text-secondary shadow-card">
+            No active jobs found. New engineering positions posted by recruiters will appear here automatically!
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {jobs.slice(0, 4).map((job) => (
+              <div
+                key={job._id}
+                className="rounded-xl border border-border bg-white p-5 shadow-card hover:shadow-hover hover:border-slate-300 transition-all flex flex-col justify-between space-y-4"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-slate-100 border border-border flex items-center justify-center font-bold text-sm text-secondary">
+                        {job.companyName?.[0] || "C"}
+                      </div>
+                      <div>
+                        <h3 className="text-base font-bold text-text-primary hover:text-primary">
+                          <Link href={`/jobs/${job._id}`}>{job.role}</Link>
+                        </h3>
+                        <div className="flex items-center gap-2 text-xs text-text-secondary mt-0.5">
+                          <span className="font-semibold text-text-primary">{job.companyName}</span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {job.location}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <Badge variant="primary" size="sm">
-                    {job.jobType}
-                  </Badge>
-                </div>
-
-                <div className="flex flex-wrap gap-1.5 mt-3">
-                  {job.skills?.slice(0, 4).map((skill: string) => (
-                    <Badge key={skill} variant="outline" size="sm">
-                      {skill}
+                    <Badge variant="primary" size="sm">
+                      {job.jobType}
                     </Badge>
-                  ))}
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 mt-3">
+                    {job.skills?.slice(0, 4).map((skill: string) => (
+                      <Badge key={skill} variant="outline" size="sm">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-border">
+                  <span className="text-xs font-bold text-secondary">
+                    {formatSalaryRange(job.salaryRange)}
+                  </span>
+                  <Link href={`/jobs/${job._id}`}>
+                    <Button size="sm" variant="outline" className="text-xs h-8">
+                      View Details
+                    </Button>
+                  </Link>
                 </div>
               </div>
-
-              <div className="flex items-center justify-between pt-3 border-t border-border">
-                <span className="text-xs font-bold text-secondary">
-                  {formatSalaryRange(job.salaryRange)}
-                </span>
-                <Link href={`/jobs/${job._id}`}>
-                  <Button size="sm" variant="outline" className="text-xs h-8">
-                    View Details
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -20,11 +20,22 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  const seekerRoutes = ["/dashboard", "/applications", "/resume-center"];
+  // If already logged in and visits auth pages (/login or /signup), redirect to role page
+  if (session && (pathname === "/login" || pathname === "/signup")) {
+    if (session.role === "admin") {
+      return NextResponse.redirect(new URL("/admin", req.url));
+    } else if (session.role === "recruiter") {
+      return NextResponse.redirect(new URL("/recruiter/dashboard", req.url));
+    } else {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+  }
+
+  const seekerRoutes = ["/dashboard", "/applications", "/resume-center", "/profile"];
   const recruiterRoutes = ["/recruiter"];
   const adminRoutes = ["/admin"];
 
-  // 1. Seeker routes protection
+  // 1. Seeker & Profile routes protection
   const isSeekerRoute = seekerRoutes.some((route) => pathname.startsWith(route));
   if (isSeekerRoute) {
     if (!session) {
@@ -56,6 +67,9 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
     if (session.role !== "admin") {
+      if (session.role === "recruiter") {
+        return NextResponse.redirect(new URL("/recruiter/dashboard", req.url));
+      }
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
   }
@@ -68,8 +82,12 @@ export const config = {
     "/dashboard/:path*",
     "/applications/:path*",
     "/resume-center/:path*",
+    "/profile/:path*",
+    "/profile",
     "/recruiter/:path*",
     "/admin/:path*",
+    "/login",
+    "/signup",
   ],
 };
 

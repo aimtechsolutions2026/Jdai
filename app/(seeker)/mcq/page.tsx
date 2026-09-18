@@ -156,10 +156,21 @@ export default function DailyMcqPage() {
       )}
 
       {/* Main Grid: Challenge Question + Sidebars */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left 2 Cols: Question Card */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="shadow-lg">
+      {!question ? (
+        <div className="rounded-2xl border border-dashed border-border bg-white p-12 text-center shadow-card space-y-4 max-w-2xl mx-auto my-6">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-primary mx-auto">
+            <HelpCircle className="h-7 w-7" />
+          </div>
+          <h3 className="text-xl font-bold text-text-primary">No Questions Currently Scheduled</h3>
+          <p className="text-sm text-text-secondary max-w-md mx-auto leading-relaxed">
+            The question bank is currently empty. New technical and aptitude challenges can be added directly by administrators.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left 2 Cols: Question Card */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="shadow-lg">
             <CardHeader className="border-b border-border pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -374,6 +385,7 @@ export default function DailyMcqPage() {
           </Card>
         </div>
       </div>
+      )}
     </div>
   );
 }

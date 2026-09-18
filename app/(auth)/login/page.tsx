@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnUrl = searchParams.get("returnUrl") || "/dashboard";
+  const returnUrl = searchParams.get("returnUrl");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,11 +35,11 @@ function LoginForm() {
       }
 
       if (data.user.role === "admin") {
-        router.push(returnUrl !== "/dashboard" ? returnUrl : "/admin");
+        router.push(returnUrl && returnUrl.startsWith("/admin") ? returnUrl : "/admin");
       } else if (data.user.role === "recruiter") {
-        router.push("/recruiter/dashboard");
+        router.push(returnUrl && returnUrl.startsWith("/recruiter") ? returnUrl : "/recruiter/dashboard");
       } else {
-        router.push(returnUrl);
+        router.push(returnUrl || "/dashboard");
       }
       router.refresh();
     } catch (err: any) {
@@ -68,9 +68,13 @@ function LoginForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login failed");
 
-      if (role === "admin") router.push("/admin");
-      else if (role === "recruiter") router.push("/recruiter/dashboard");
-      else router.push("/dashboard");
+      if (role === "admin") {
+        router.push(returnUrl && returnUrl.startsWith("/admin") ? returnUrl : "/admin");
+      } else if (role === "recruiter") {
+        router.push(returnUrl && returnUrl.startsWith("/recruiter") ? returnUrl : "/recruiter/dashboard");
+      } else {
+        router.push(returnUrl || "/dashboard");
+      }
       router.refresh();
     } catch (err: any) {
       setError(err.message);

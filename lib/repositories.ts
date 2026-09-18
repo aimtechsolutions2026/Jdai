@@ -8,8 +8,8 @@ import { DailyAttempt } from "@/models/DailyAttempt";
 import { SEED_JOBS, SEED_MCQS, SEED_CANDIDATES } from "./seed-data";
 
 // In-memory runtime cache stores
-let memoryJobs: any[] = [...SEED_JOBS];
-let memoryMCQs: any[] = [...SEED_MCQS];
+let memoryJobs: any[] = [];
+let memoryMCQs: any[] = [];
 let memoryUsers: any[] = [
   {
     _id: "66e000000000000000000001",
@@ -208,7 +208,7 @@ export const JobRepository = {
           query["experienceRequired.min"] = { $gte: filters.experienceMin };
         }
         const jobs = await Job.find(query).sort({ postedAt: -1 }).lean();
-        if (jobs && jobs.length > 0) return jobs;
+        return jobs;
       } catch (e) {
         console.warn("DB find error, fallback to memory:", e);
       }
@@ -477,7 +477,7 @@ export const McqRepository = {
     if (conn) {
       try {
         const questions = await MCQQuestion.find().lean();
-        if (questions && questions.length > 0) return questions;
+        return questions;
       } catch {}
     }
     return memoryMCQs;
@@ -485,11 +485,12 @@ export const McqRepository = {
 
   async getTodayQuestion() {
     const all = await this.getAll();
+    if (!all || all.length === 0) return null;
     const dayOfYear = Math.floor(
       (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24
     );
     const index = dayOfYear % all.length;
-    return all[index] || all[0];
+    return all[index] || all[0] || null;
   },
 
   async findById(id: string) {
