@@ -207,6 +207,42 @@ export const UserRepository = {
     );
   },
 
+  async findByPhone(phone: string) {
+    if (!phone || !phone.trim()) return null;
+    const clean = phone.trim();
+    const digits = clean.replace(/[^0-9]/g, "");
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const user = await User.findOne({
+          $or: [
+            { phone: clean },
+            ...(digits.length >= 8 ? [{ phone: { $regex: digits } }] : []),
+          ],
+        }).lean();
+        if (user) return user;
+      } catch {}
+    }
+    return (
+      memoryUsers.find((u) => {
+        if (!u.phone) return false;
+        const uDigits = u.phone.replace(/[^0-9]/g, "");
+        return u.phone === clean || (digits.length >= 8 && uDigits.includes(digits));
+      }) || null
+    );
+  },
+
+  async findByEmailOrPhone(identifier: string) {
+    if (!identifier || !identifier.trim()) return null;
+    const clean = identifier.trim();
+    if (clean.includes("@")) {
+      return this.findByEmail(clean);
+    }
+    const byEmail = await this.findByEmail(clean);
+    if (byEmail) return byEmail;
+    return this.findByPhone(clean);
+  },
+
   async findById(id: string) {
     const conn = await connectToDatabase();
     if (conn) {
