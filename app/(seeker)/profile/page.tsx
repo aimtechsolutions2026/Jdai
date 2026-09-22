@@ -40,6 +40,7 @@ export default function ProfilePage() {
 
   const [loading, setLoading] = useState(true);
   const [parsing, setParsing] = useState(false);
+  const [parsingStatus, setParsingStatus] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -96,7 +97,6 @@ export default function ProfilePage() {
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const [showAtsModal, setShowAtsModal] = useState(false);
   const [candidateId, setCandidateId] = useState<string>("");
-  const [copiedLink, setCopiedLink] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -146,17 +146,6 @@ export default function ProfilePage() {
     }
   };
 
-  const handleShareResume = () => {
-    if (!candidateId && typeof window !== "undefined") {
-      setErrorMsg("Candidate ID is not ready yet. Please refresh or save profile.");
-      return;
-    }
-    const shareUrl = `${window.location.origin}/resume/${candidateId}`;
-    navigator.clipboard.writeText(shareUrl);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2500);
-  };
-
   const handleFileUpload = async (file: File) => {
     if (!file) return;
     if (!file.name.toLowerCase().endsWith(".pdf") && file.type !== "application/pdf") {
@@ -165,6 +154,7 @@ export default function ProfilePage() {
     }
 
     setParsing(true);
+    setParsingStatus("Uploading resume...");
     setErrorMsg(null);
     setSuccessMsg(null);
 
@@ -178,43 +168,75 @@ export default function ProfilePage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to parse resume");
+      if (!res.ok) throw new Error(data.error || "Failed to upload resume");
 
-      // Autofill all fields from parsed output
-      const parsed = data.parsedData;
-      if (parsed.name) setName(parsed.name);
-      if (parsed.email) setEmail(parsed.email);
-      if (parsed.phone) setPhone(parsed.phone);
-      if (parsed.headline) setHeadline(parsed.headline);
-      if (parsed.summary) setSummary(parsed.summary);
-      if (parsed.location) setLocation(parsed.location);
-      if (parsed.pincode) setPincode(parsed.pincode);
-      if (parsed.skills && parsed.skills.length > 0) setSkills(parsed.skills);
-      if (parsed.experience && parsed.experience.length > 0) setExperience(parsed.experience);
-      if (parsed.education && parsed.education.length > 0) setEducation(parsed.education);
-      if (parsed.certificates && parsed.certificates.length > 0) setCertificates(parsed.certificates);
-      if (parsed.achievements && parsed.achievements.length > 0) setAchievements(parsed.achievements);
-      if (parsed.projects && parsed.projects.length > 0) setProjects(parsed.projects);
-      if (parsed.socialLinks) {
-        setSocialLinks({
-          linkedin: parsed.socialLinks.linkedin || "",
-          github: parsed.socialLinks.github || "",
-          portfolio: parsed.socialLinks.portfolio || "",
-        });
+      const jobId = data.jobId;
+      setParsingStatus("Analyzing resume via automation in background...");
+
+      // Poll status endpoint every 2 seconds until completed or failed
+      let attempts = 0;
+      const maxAttempts = 30; // 60 seconds maximum timeout
+
+      while (attempts < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        attempts++;
+
+        const statusRes = await fetch(`/api/resume/status/${jobId}`);
+        if (!statusRes.ok) {
+          throw new Error("Failed to check resume extraction status");
+        }
+
+        const statusData = await statusRes.json();
+        if (statusData.status === "completed") {
+          const parsed = statusData.result?.parsedData || statusData.result;
+          if (parsed) {
+            if (parsed.name) setName(parsed.name);
+            if (parsed.email) setEmail(parsed.email);
+            if (parsed.phone) setPhone(parsed.phone);
+            if (parsed.headline) setHeadline(parsed.headline);
+            if (parsed.summary) setSummary(parsed.summary);
+            if (parsed.location) setLocation(parsed.location);
+            if (parsed.pincode) setPincode(parsed.pincode);
+            if (parsed.skills && parsed.skills.length > 0) setSkills(parsed.skills);
+            if (parsed.experience && parsed.experience.length > 0) setExperience(parsed.experience);
+            if (parsed.education && parsed.education.length > 0) setEducation(parsed.education);
+            if (parsed.certificates && parsed.certificates.length > 0) setCertificates(parsed.certificates);
+            if (parsed.achievements && parsed.achievements.length > 0) setAchievements(parsed.achievements);
+            if (parsed.projects && parsed.projects.length > 0) setProjects(parsed.projects);
+            if (parsed.socialLinks) {
+              setSocialLinks({
+                linkedin: parsed.socialLinks.linkedin || "",
+                github: parsed.socialLinks.github || "",
+                portfolio: parsed.socialLinks.portfolio || "",
+              });
+            }
+            if (parsed.languages && parsed.languages.length > 0) setLanguages(parsed.languages);
+            if (parsed.salaryExpectation?.min) setSalaryMin(parsed.salaryExpectation.min);
+            if (parsed.salaryExpectation?.max) setSalaryMax(parsed.salaryExpectation.max);
+            if (parsed.salaryExpectation?.currency) setCurrency(parsed.salaryExpectation.currency);
+          }
+          const profile = statusData.result?.profile;
+          if (profile?.profileCompleteness) setCompleteness(profile.profileCompleteness);
+
+          setSuccessMsg(
+            "Extracted your resume details via automation! Name, contact, headline, summary, skills, experience, education, certificates, achievements, and projects have been populated below."
+          );
+          setParsing(false);
+          setParsingStatus(null);
+          return;
+        } else if (statusData.status === "failed") {
+          throw new Error(statusData.error || "Resume extraction failed");
+        } else {
+          setParsingStatus(`Analyzing via automation... (${attempts * 2}s)`);
+        }
       }
-      if (parsed.languages && parsed.languages.length > 0) setLanguages(parsed.languages);
-      if (parsed.salaryExpectation?.min) setSalaryMin(parsed.salaryExpectation.min);
-      if (parsed.salaryExpectation?.max) setSalaryMax(parsed.salaryExpectation.max);
-      if (parsed.salaryExpectation?.currency) setCurrency(parsed.salaryExpectation.currency);
-      if (data.profile?.profileCompleteness) setCompleteness(data.profile.profileCompleteness);
 
-      setSuccessMsg(
-        "AI extracted your resume details! Name, contact, headline, summary, skills, experience, education, certificates, achievements, and projects have been populated below."
-      );
+      throw new Error("Resume parsing timed out after 60 seconds. Please try again.");
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to parse resume");
     } finally {
       setParsing(false);
+      setParsingStatus(null);
     }
   };
 
@@ -392,29 +414,10 @@ export default function ProfilePage() {
             Candidate Profile
           </h1>
           <p className="text-sm text-text-secondary mt-1">
-            Manage your verified details, skills, work history, projects, certifications, and AI-parsed resume.
+            Manage your verified details, skills, work history, projects, certifications, and automated parsed resume.
           </p>
         </div>
         <div className="flex items-center gap-2.5 flex-wrap">
-          <Button
-            type="button"
-            variant="outline"
-            size="md"
-            onClick={handleShareResume}
-            className="gap-2 shrink-0 border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold"
-          >
-            {copiedLink ? (
-              <>
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                <span className="text-emerald-600">Copied Public Link!</span>
-              </>
-            ) : (
-              <>
-                <Share2 className="h-4 w-4 text-primary" />
-                <span>Share Resume</span>
-              </>
-            )}
-          </Button>
           <Button
             type="button"
             variant="outline"
@@ -474,7 +477,7 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* AI Resume Upload Dropzone */}
+      {/* Automated Resume Upload Dropzone */}
       <Card className="border-dashed border-2 border-slate-300 bg-white hover:border-primary/60 transition-colors">
         <CardContent className="p-8 text-center space-y-4">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-primary">
@@ -487,11 +490,11 @@ export default function ProfilePage() {
           <div className="space-y-1">
             <h3 className="text-base font-bold text-text-primary">
               {parsing
-                ? "AI is parsing your resume PDF..."
+                ? "Parsing your resume PDF via automation..."
                 : "Upload or Replace Resume (PDF Only)"}
             </h3>
             <p className="text-xs text-text-secondary max-w-md mx-auto">
-              Our AI pipeline extracts your personal details, skills, experience, education, projects, certifications, and achievements directly into your profile. Files are processed securely in-memory and discarded.
+              Our automated pipeline extracts your personal details, skills, experience, education, projects, certifications, and achievements directly into your profile. Files are processed securely in-memory and discarded.
             </p>
           </div>
 
@@ -1243,25 +1246,6 @@ export default function ProfilePage() {
           All changes are saved to your verified candidate profile and immediately reflected in ATS exports.
         </div>
         <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end flex-wrap">
-          <Button
-            type="button"
-            variant="outline"
-            size="md"
-            onClick={handleShareResume}
-            className="gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold"
-          >
-            {copiedLink ? (
-              <>
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                <span className="text-emerald-600">Copied Link!</span>
-              </>
-            ) : (
-              <>
-                <Share2 className="h-4 w-4 text-primary" />
-                <span>Share Resume</span>
-              </>
-            )}
-          </Button>
           <Button
             type="button"
             variant="outline"

@@ -179,7 +179,7 @@ function SignUpForm() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Alex Morgan"
+                placeholder="Enter your full name"
                 icon={<UserIcon className="h-4 w-4" />}
               />
             </div>
@@ -194,7 +194,7 @@ function SignUpForm() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="alex@example.com"
+                placeholder="Enter email"
                 icon={<Mail className="h-4 w-4" />}
               />
             </div>
@@ -209,7 +209,7 @@ function SignUpForm() {
                 required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+1 (555) 000-0000 or +91 98765 43210"
+                placeholder="Enter phone number"
                 icon={<Phone className="h-4 w-4" />}
               />
             </div>
@@ -225,7 +225,7 @@ function SignUpForm() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min 8 chars, Aa, 0-9"
+                  placeholder="Enter password"
                   icon={<Lock className="h-4 w-4" />}
                 />
                 <button
@@ -295,7 +295,7 @@ function SignUpForm() {
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Re-enter your password"
+                  placeholder="Confirm password"
                   icon={<Lock className="h-4 w-4" />}
                 />
                 <button

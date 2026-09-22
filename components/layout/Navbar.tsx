@@ -196,14 +196,14 @@ export function Navbar() {
                   Dashboard
                 </Link>
                 <Link
-                  href="/admin/jobs"
+                  href="/admin/ingest"
                   className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                     pathname === "/admin/ingest"
                       ? "text-primary bg-blue-50/60 font-semibold"
                       : "text-text-secondary hover:text-text-primary hover:bg-slate-50"
                   }`}
                 >
-                  AI Ingestion
+                  Automated Ingestion
                 </Link>
                 <Link
                   href="/admin/jobs"
@@ -318,7 +318,7 @@ export function Navbar() {
                           className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg text-text-primary hover:bg-surface-alt hover:text-primary transition-colors"
                         >
                           <LayoutDashboard className="h-4 w-4 text-text-secondary" />
-                          <span>Seeker Dashboard</span>
+                          <span>My Dashboard</span>
                         </Link>
                       )}
 
@@ -452,7 +452,7 @@ export function Navbar() {
                     className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
                   >
                     <Sparkles className="h-4 w-4 text-primary" />
-                    <span>AI Ingestion Hub</span>
+                    <span>Automated Ingestion Hub</span>
                   </Link>
                   <Link
                     href="/admin/jobs"
@@ -528,7 +528,7 @@ export function Navbar() {
                     className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
                   >
                     <LayoutDashboard className="h-4 w-4 text-primary" />
-                    <span>Seeker Dashboard</span>
+                    <span>My Dashboard</span>
                   </Link>
                   <Link
                     href="/jobs"

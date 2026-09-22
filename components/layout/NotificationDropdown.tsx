@@ -43,21 +43,7 @@ export function NotificationDropdown() {
       if (res.ok) {
         const data = await res.json();
         const serverNotifs: NotificationItem[] = data.notifications || [];
-
-        // Check read status from localStorage
-        let readIds: string[] = [];
-        try {
-          const stored = localStorage.getItem("codifypro_read_notifs");
-          if (stored) readIds = JSON.parse(stored);
-        } catch {}
-
-        const readSet = new Set(readIds);
-        const updated = serverNotifs.map((item) => ({
-          ...item,
-          unread: item.unread && !readSet.has(item.id),
-        }));
-
-        setNotifications(updated);
+        setNotifications(serverNotifs);
       }
     } catch (err) {
       console.error("Failed to load notifications:", err);
@@ -103,27 +89,24 @@ export function NotificationDropdown() {
 
   const unreadCount = notifications.filter((n) => n.unread).length;
 
-  const markAllAsRead = () => {
-    const allIds = notifications.map((n) => n.id);
-    try {
-      localStorage.setItem("codifypro_read_notifs", JSON.stringify(allIds));
-    } catch {}
+  const markAllAsRead = async () => {
     setNotifications((prev) => prev.map((item) => ({ ...item, unread: false })));
+    try {
+      await fetch("/api/notifications/read-all", { method: "PUT" });
+    } catch (err) {
+      console.warn("Failed to mark all notifications read on server:", err);
+    }
   };
 
-  const markAsRead = (id: string) => {
-    try {
-      const stored = localStorage.getItem("codifypro_read_notifs");
-      const readIds = stored ? JSON.parse(stored) : [];
-      if (!readIds.includes(id)) {
-        readIds.push(id);
-        localStorage.setItem("codifypro_read_notifs", JSON.stringify(readIds));
-      }
-    } catch {}
-
+  const markAsRead = async (id: string) => {
     setNotifications((prev) =>
       prev.map((item) => (item.id === id ? { ...item, unread: false } : item))
     );
+    try {
+      await fetch(`/api/notifications/${id}/read`, { method: "PATCH" });
+    } catch (err) {
+      console.warn("Failed to mark notification read on server:", err);
+    }
   };
 
   const filteredNotifications = notifications.filter((item) => {

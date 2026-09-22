@@ -111,6 +111,31 @@ const JobSchema = new Schema<IJob>(
   { timestamps: true }
 );
 
+// Text index for high-speed keyword search across role, skills, company, and description
+JobSchema.index(
+  {
+    role: "text",
+    skills: "text",
+    companyName: "text",
+    jd: "text",
+  },
+  {
+    weights: {
+      role: 10,
+      skills: 5,
+      companyName: 3,
+      jd: 1,
+    },
+    name: "JobTextSearchIndex",
+  }
+);
+
+// Compound indexes for common discovery and filtering combinations (ESR rule)
+JobSchema.index({ status: 1, postedAt: -1 });
+JobSchema.index({ status: 1, jobType: 1, postedAt: -1 });
+JobSchema.index({ status: 1, location: 1, postedAt: -1 });
+JobSchema.index({ status: 1, jobType: 1, location: 1, postedAt: -1 });
+
 export const Job: Model<IJob> =
   mongoose.models.Job || mongoose.model<IJob>("Job", JobSchema);
 

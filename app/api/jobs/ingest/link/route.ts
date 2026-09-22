@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { extractJobWithGroq } from "@/lib/groq";
+import { IngestionJobRepository } from "@/lib/repositories";
+import { processJdLinkJob } from "@/lib/ingestion-worker";
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,44 +20,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let pageText = "";
-    try {
-      const pageRes = await fetch(url, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 CodifyProBot/1.0",
-        },
-      });
+    // 1. Create IngestionJob in MongoDB with status "processing"
+    const job = await IngestionJobRepository.create({
+      type: "jd_link",
+      status: "processing",
+      inputRef: url,
+      userId: session.userId,
+    });
 
-      if (pageRes.ok) {
-        const html = await pageRes.text();
-        // Strip scripts and styles
-        pageText = html
-          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, " ")
-          .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, " ")
-          .replace(/<[^>]+>/g, " ")
-          .replace(/\s+/g, " ")
-          .trim()
-          .slice(0, 10000);
-      }
-    } catch (fetchErr) {
-      console.warn("External URL fetch failed, falling back to simulated text:", fetchErr);
-    }
+    const jobId = String(job._id);
 
-    if (!pageText || pageText.length < 50) {
-      pageText = `Software Engineer position at leading tech venture found at ${url}. Requires modern full-stack development, React, TypeScript, and microservice architecture.`;
-    }
+    // 2. Trigger asynchronous background worker (fire-and-forget)
+    processJdLinkJob(jobId, url).catch((err) => {
+      console.error(`[IngestLink] Background worker error for job ${jobId}:`, err);
+    });
 
-    const extracted = await extractJobWithGroq(pageText);
-    if (!extracted.applyUrl) extracted.applyUrl = url;
-
-    return NextResponse.json({ success: true, extracted });
+    // 3. Return immediately with HTTP 202 Accepted
+    return NextResponse.json(
+      {
+        success: true,
+        jobId,
+        status: "processing",
+        message: "Job URL accepted. Scraping and automated extraction running in background.",
+      },
+      { status: 202 }
+    );
   } catch (error: any) {
     console.error("Link ingestion error:", error);
     return NextResponse.json(
-      { error: error?.message || "Failed to extract job from link" },
+      { error: error?.message || "Failed to initiate link extraction" },
       { status: 500 }
     );
   }
 }
-

@@ -41,6 +41,7 @@ export default function AdminIngestPage() {
   const [pasteText, setPasteText] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
   const [extracting, setExtracting] = useState(false);
+  const [extractingText, setExtractingText] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -80,6 +81,7 @@ export default function AdminIngestPage() {
       return;
     }
     setExtracting(true);
+    setExtractingText("Submitting job text for extraction...");
     setErrorMsg(null);
     setSuccessMsg(null);
 
@@ -92,12 +94,40 @@ export default function AdminIngestPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Extraction failed");
 
-      setExtractedDraft(normalizeExtracted(data.extracted));
-      setSuccessMsg("AI extraction complete! Review and verify profile details below before publishing.");
+      const jobId = data.jobId;
+      setExtractingText("AI analyzing and structuring job description in background...");
+
+      let attempts = 0;
+      const maxAttempts = 30; // 60 seconds maximum timeout
+
+      while (attempts < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        attempts++;
+
+        const statusRes = await fetch(`/api/jobs/ingest/status/${jobId}`);
+        if (!statusRes.ok) {
+          throw new Error("Failed to check extraction status");
+        }
+
+        const statusData = await statusRes.json();
+        if (statusData.status === "completed") {
+          const raw = statusData.result?.extracted || statusData.result;
+          setExtractedDraft(normalizeExtracted(raw));
+          setSuccessMsg("AI extraction complete! Review and verify profile details below before publishing.");
+          setExtracting(false);
+          setExtractingText(null);
+          return;
+        } else if (statusData.status === "failed") {
+          throw new Error(statusData.error || "Extraction failed");
+        }
+      }
+
+      throw new Error("Job extraction timed out. Please try again.");
     } catch (err: any) {
       setErrorMsg(err.message || "Extraction failed");
     } finally {
       setExtracting(false);
+      setExtractingText(null);
     }
   };
 
@@ -107,6 +137,7 @@ export default function AdminIngestPage() {
       return;
     }
     setExtracting(true);
+    setExtractingText("Submitting URL for extraction...");
     setErrorMsg(null);
     setSuccessMsg(null);
 
@@ -119,12 +150,40 @@ export default function AdminIngestPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Extraction failed");
 
-      setExtractedDraft(normalizeExtracted(data.extracted));
-      setSuccessMsg("AI extraction complete! Review and verify profile details below before publishing.");
+      const jobId = data.jobId;
+      setExtractingText("Scraping page and analyzing job link in background...");
+
+      let attempts = 0;
+      const maxAttempts = 30; // 60 seconds maximum timeout
+
+      while (attempts < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        attempts++;
+
+        const statusRes = await fetch(`/api/jobs/ingest/status/${jobId}`);
+        if (!statusRes.ok) {
+          throw new Error("Failed to check extraction status");
+        }
+
+        const statusData = await statusRes.json();
+        if (statusData.status === "completed") {
+          const raw = statusData.result?.extracted || statusData.result;
+          setExtractedDraft(normalizeExtracted(raw));
+          setSuccessMsg("AI extraction complete! Review and verify profile details below before publishing.");
+          setExtracting(false);
+          setExtractingText(null);
+          return;
+        } else if (statusData.status === "failed") {
+          throw new Error(statusData.error || "Extraction failed");
+        }
+      }
+
+      throw new Error("Link extraction timed out. Please try again.");
     } catch (err: any) {
       setErrorMsg(err.message || "Extraction failed");
     } finally {
       setExtracting(false);
+      setExtractingText(null);
     }
   };
 
@@ -271,6 +330,12 @@ export default function AdminIngestPage() {
       </div>
 
       {/* Alerts */}
+      {extracting && (
+        <div className="flex items-center gap-3 rounded-xl bg-primary/10 border border-primary/30 p-4 text-sm text-primary font-medium">
+          <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin shrink-0" />
+          <span>{extractingText || "AI is analyzing in the background..."}</span>
+        </div>
+      )}
       {errorMsg && (
         <div className="flex items-center gap-2 rounded-xl bg-rose-50 p-4 text-sm text-error border border-rose-200">
           <AlertCircle className="h-4 w-4 shrink-0" />

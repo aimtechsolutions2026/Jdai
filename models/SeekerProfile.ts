@@ -64,6 +64,7 @@ export interface ISeekerProfile extends Document {
     longest: number;
     lastSolvedDate?: string;
   };
+  minExperience?: number;
   xp: number;
   createdAt: Date;
   updatedAt: Date;
@@ -174,6 +175,10 @@ const SeekerProfileSchema = new Schema<ISeekerProfile>(
       longest: { type: Number, default: 0 },
       lastSolvedDate: { type: String },
     },
+    minExperience: {
+      type: Number,
+      default: 0,
+    },
     xp: {
       type: Number,
       default: 0,
@@ -181,6 +186,24 @@ const SeekerProfileSchema = new Schema<ISeekerProfile>(
   },
   { timestamps: true }
 );
+
+// --- INDEXING ARCHITECTURE NOTE: Compound B-Tree Indexes vs. Mongo Atlas Search ---
+// 1. Compound B-Tree Indexes (Current):
+//    - Highly efficient for exact multi-attribute filtering (skills array, location prefix/exact, salary, minExperience).
+//    - Works across all standalone/containerized MongoDB instances without requiring Atlas M0+ or dedicated search nodes.
+//    - Zero ingestion latency (strictly synchronous index updates on write).
+// 2. MongoDB Atlas Search ($search with Lucene Inverted Index) Migration Triggers:
+//    - Typo & fuzzy tolerance (e.g. matching "reactjs" to "React" or "phyton" to "Python").
+//    - Keyword tokenization & synonym dictionaries (e.g. "Go" <=> "Golang", "Kubernetes" <=> "k8s").
+//    - Automated BM25/TF-IDF relevance score ranking across uncurated resumes.
+//    - Multi-faceted candidate aggregations with dynamic count badges for large talent pools (>50k profiles).
+
+// Compound index for recruiter candidate search by skills and location
+SeekerProfileSchema.index({ skills: 1, location: 1 });
+
+// Supporting compound indexes for compensation and experience filters
+SeekerProfileSchema.index({ skills: 1, location: 1, "salaryExpectation.max": 1 });
+SeekerProfileSchema.index({ skills: 1, location: 1, minExperience: 1 }, { sparse: true });
 
 export const SeekerProfile: Model<ISeekerProfile> =
   mongoose.models.SeekerProfile ||

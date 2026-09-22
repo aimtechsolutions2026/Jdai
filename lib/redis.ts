@@ -1,92 +1,131 @@
-// Universal Redis client with in-memory TTL fallback
 import { Redis as UpstashRedis } from "@upstash/redis";
 import IORedis from "ioredis";
 
-interface CacheStore {
-  [key: string]: { value: string; expiresAt?: number };
+declare global {
+  // Reused Redis connection across serverless invocations
+  var __codifypro_ioredis: IORedis | undefined;
+  var __codifypro_upstash: UpstashRedis | undefined;
 }
 
-class InMemoryRedisFallback {
-  private store: CacheStore = {};
-
-  async get(key: string): Promise<string | null> {
-    const item = this.store[key];
-    if (!item) return null;
-    if (item.expiresAt && Date.now() > item.expiresAt) {
-      delete this.store[key];
-      return null;
-    }
-    return item.value;
-  }
-
-  async set(key: string, value: string, opts?: { ex?: number }): Promise<"OK"> {
-    const expiresAt = opts?.ex ? Date.now() + opts.ex * 1000 : undefined;
-    this.store[key] = { value, expiresAt };
-    return "OK";
-  }
-
-  async incr(key: string): Promise<number> {
-    const current = await this.get(key);
-    const num = current ? parseInt(current, 10) + 1 : 1;
-    await this.set(key, num.toString());
-    return num;
-  }
-
-  async del(key: string): Promise<number> {
-    if (this.store[key]) {
-      delete this.store[key];
-      return 1;
-    }
-    return 0;
-  }
-}
-
-let redisInstance: {
+export interface RedisClientInterface {
   get: (key: string) => Promise<string | null>;
   set: (key: string, value: string, opts?: { ex?: number }) => Promise<any>;
   incr: (key: string) => Promise<number>;
   del: (key: string) => Promise<number>;
-};
+}
 
 const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
 const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 const redisUrl = process.env.REDIS_URL;
 
+let redisClient: RedisClientInterface;
+
 if (upstashUrl && upstashToken) {
-  const upstash = new UpstashRedis({
-    url: upstashUrl,
-    token: upstashToken,
-  });
-  redisInstance = {
+  // 1. Upstash Redis (HTTP REST-based, ideal for Vercel / serverless edge)
+  const upstash =
+    global.__codifypro_upstash ||
+    new UpstashRedis({
+      url: upstashUrl,
+      token: upstashToken,
+    });
+  global.__codifypro_upstash = upstash;
+
+  redisClient = {
     get: async (key: string) => {
-      const val = await upstash.get(key);
-      return val !== null && val !== undefined ? String(val) : null;
+      try {
+        const val = await upstash.get(key);
+        return val !== null && val !== undefined ? String(val) : null;
+      } catch (err) {
+        console.warn(`[Redis] Upstash GET error for key ${key}:`, err);
+        return null;
+      }
     },
     set: async (key: string, val: string, opts?: { ex?: number }) => {
-      if (opts?.ex) {
-        return upstash.set(key, val, { ex: opts.ex });
+      try {
+        if (opts?.ex) {
+          return await upstash.set(key, val, { ex: opts.ex });
+        }
+        return await upstash.set(key, val);
+      } catch (err) {
+        console.warn(`[Redis] Upstash SET error for key ${key}:`, err);
+        return null;
       }
-      return upstash.set(key, val);
     },
-    incr: async (key: string) => upstash.incr(key),
-    del: async (key: string) => upstash.del(key),
+    incr: async (key: string) => {
+      try {
+        return await upstash.incr(key);
+      } catch {
+        return 1;
+      }
+    },
+    del: async (key: string) => {
+      try {
+        return await upstash.del(key);
+      } catch {
+        return 0;
+      }
+    },
   };
-} else if (redisUrl && !redisUrl.includes("localhost")) {
-  try {
-    const io = new IORedis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1 });
-    redisInstance = {
-      get: async (k) => io.get(k),
-      set: async (k, v, opts) => (opts?.ex ? io.set(k, v, "EX", opts.ex) : io.set(k, v)),
-      incr: async (k) => io.incr(k),
-      del: async (k) => io.del(k),
-    };
-  } catch {
-    redisInstance = new InMemoryRedisFallback();
+} else if (redisUrl) {
+  // 2. Standard Redis via IORedis (serverless connection reuse + graceful offline fallback)
+  let io: IORedis;
+  if (global.__codifypro_ioredis) {
+    io = global.__codifypro_ioredis;
+  } else {
+    io = new IORedis(redisUrl, {
+      lazyConnect: true,
+      maxRetriesPerRequest: 1,
+      connectTimeout: 2500,
+      enableOfflineQueue: false, // Don't block requests if Redis is unreachable
+      retryStrategy: (times) => (times > 2 ? null : 500),
+    });
+    // Suppress unhandled connection error crashes
+    io.on("error", (err) => {
+      console.warn("[Redis] IORedis connection event error (will fallback to live DB):", err.message || err);
+    });
+    global.__codifypro_ioredis = io;
   }
+
+  redisClient = {
+    get: async (k: string) => {
+      try {
+        return await io.get(k);
+      } catch (err: any) {
+        console.warn(`[Redis] GET error for key ${k}:`, err?.message || err);
+        return null;
+      }
+    },
+    set: async (k: string, v: string, opts?: { ex?: number }) => {
+      try {
+        return opts?.ex ? await io.set(k, v, "EX", opts.ex) : await io.set(k, v);
+      } catch (err: any) {
+        console.warn(`[Redis] SET error for key ${k}:`, err?.message || err);
+        return null;
+      }
+    },
+    incr: async (k: string) => {
+      try {
+        return await io.incr(k);
+      } catch {
+        return 1;
+      }
+    },
+    del: async (k: string) => {
+      try {
+        return await io.del(k);
+      } catch {
+        return 0;
+      }
+    },
+  };
 } else {
-  // Use memory fallback
-  redisInstance = new InMemoryRedisFallback();
+  // 3. No Redis configured: graceful null fallback directing all queries to live MongoDB
+  redisClient = {
+    get: async () => null,
+    set: async () => null,
+    incr: async () => 1,
+    del: async () => 0,
+  };
 }
 
-export const redis = redisInstance;
-
+export const redis = redisClient;

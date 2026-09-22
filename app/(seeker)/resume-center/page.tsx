@@ -22,7 +22,6 @@ export default function ResumeCenterPage() {
   const [loading, setLoading] = useState(true);
   const [generatingAts, setGeneratingAts] = useState(false);
   const [atsReady, setAtsReady] = useState(false);
-  const [copiedShare, setCopiedShare] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -39,15 +38,6 @@ export default function ResumeCenterPage() {
     }
     load();
   }, []);
-
-  const handleSharePublicLink = () => {
-    const shareId = profile?.userId || profile?._id || profile?.id;
-    if (!shareId && typeof window !== "undefined") return;
-    const shareUrl = `${window.location.origin}/resume/${shareId}`;
-    navigator.clipboard.writeText(shareUrl);
-    setCopiedShare(true);
-    setTimeout(() => setCopiedShare(false), 2500);
-  };
 
   const handleGenerateATS = () => {
     setGeneratingAts(true);
@@ -123,7 +113,7 @@ $${profile?.salaryExpectation?.min?.toLocaleString()} - $${profile?.salaryExpect
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-xs text-text-secondary leading-relaxed">
-                The original source PDF used for AI extraction and shared with recruiters upon direct application.
+                The original source PDF used for automated extraction and shared with recruiters upon direct application.
               </p>
               {profile?.resumeUrl ? (
                 <div className="rounded-xl border border-border p-3 bg-surface-alt flex items-center justify-between text-xs">
@@ -212,36 +202,6 @@ $${profile?.salaryExpectation?.min?.toLocaleString()} - $${profile?.salaryExpect
                 <Download className="h-3.5 w-3.5" />
                 <span>Download Compiled ATS Document</span>
               </Button>
-            )}
-
-            {(profile?.userId || profile?._id || profile?.id) && (
-              <>
-                <Button
-                  variant="outline"
-                  className="w-full gap-2 text-xs border-blue-200 text-primary hover:bg-blue-50 font-semibold"
-                  onClick={handleSharePublicLink}
-                >
-                  {copiedShare ? (
-                    <>
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                      <span className="text-emerald-600 font-semibold">Public Link Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Share2 className="h-3.5 w-3.5" />
-                      <span>Share Public Resume Link</span>
-                    </>
-                  )}
-                </Button>
-                <Link
-                  href={`/resume/${profile.userId || profile._id || profile.id}`}
-                  target="_blank"
-                  className="text-[11px] text-center text-text-secondary hover:text-primary flex items-center justify-center gap-1 pt-0.5 transition-colors font-medium"
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  <span>Preview Public ATS Resume (Guest View)</span>
-                </Link>
-              </>
             )}
           </div>
         </Card>

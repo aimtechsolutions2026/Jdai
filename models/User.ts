@@ -9,6 +9,12 @@ export interface IUser extends Document {
   phone?: string;
   avatarUrl?: string;
   isVerified: boolean;
+  isActive: boolean;
+  deletionRequested: boolean;
+  deletionRequestedAt?: Date;
+  deletionReason?: string;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -18,10 +24,8 @@ const UserSchema = new Schema<IUser>(
     email: {
       type: String,
       required: true,
-      unique: true,
       lowercase: true,
       trim: true,
-      index: true,
     },
     passwordHash: {
       type: String,
@@ -41,7 +45,6 @@ const UserSchema = new Schema<IUser>(
     phone: {
       type: String,
       trim: true,
-      index: true,
     },
     avatarUrl: {
       type: String,
@@ -50,9 +53,34 @@ const UserSchema = new Schema<IUser>(
       type: Boolean,
       default: true,
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    deletionRequested: {
+      type: Boolean,
+      default: false,
+    },
+    deletionRequestedAt: {
+      type: Date,
+    },
+    deletionReason: {
+      type: String,
+      default: "",
+    },
+    resetPasswordToken: {
+      type: String,
+    },
+    resetPasswordExpires: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );
+
+// Indexes
+UserSchema.index({ email: 1 }, { unique: true });
+UserSchema.index({ phone: 1 }, { unique: true, sparse: true });
 
 export const User: Model<IUser> =
   mongoose.models.User || mongoose.model<IUser>("User", UserSchema);

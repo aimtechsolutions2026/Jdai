@@ -73,19 +73,8 @@ interface AtsResumeModalProps {
 
 export function AtsResumeModal({ isOpen, onClose, profile }: AtsResumeModalProps) {
   const [copied, setCopied] = useState(false);
-  const [copiedShare, setCopiedShare] = useState(false);
 
   if (!isOpen) return null;
-
-  const candidateId = profile.id || profile.userId;
-
-  const handleShareLink = () => {
-    if (!candidateId && typeof window !== "undefined") return;
-    const shareUrl = `${window.location.origin}/resume/${candidateId}`;
-    navigator.clipboard.writeText(shareUrl);
-    setCopiedShare(true);
-    setTimeout(() => setCopiedShare(false), 2500);
-  };
 
   const candidateName = profile.name || "Candidate";
   const candidateEmail = profile.email || "";
@@ -218,26 +207,6 @@ Generated via CodifyPro ATS Resume Engine by Aimtech Solutions
           </div>
 
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            {candidateId && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleShareLink}
-                className="gap-1.5 text-xs border-blue-200 text-primary hover:bg-blue-50 font-semibold"
-              >
-                {copiedShare ? (
-                  <>
-                    <Check className="h-3.5 w-3.5 text-emerald-600" />
-                    <span className="text-emerald-600">Copied Link!</span>
-                  </>
-                ) : (
-                  <>
-                    <Share2 className="h-3.5 w-3.5" />
-                    <span>Share Public Link</span>
-                  </>
-                )}
-              </Button>
-            )}
             <Button
               onClick={handlePrint}
               size="sm"
