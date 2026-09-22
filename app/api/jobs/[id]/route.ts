@@ -11,7 +11,14 @@ export async function GET(
     if (!job) {
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }
-    return NextResponse.json({ success: true, job });
+    return NextResponse.json(
+      { success: true, job },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        },
+      }
+    );
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch job" }, { status: 500 });
   }

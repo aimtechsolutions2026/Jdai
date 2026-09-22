@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { JobRepository } from "@/lib/repositories";
 import { getSessionUser } from "@/lib/auth";
 import { JobCreateSchema } from "@/lib/zod-schemas";
+import { notifyMatchingSeekersOfJob } from "@/lib/notifications";
 
 export async function GET(req: NextRequest) {
   try {
@@ -27,7 +28,14 @@ export async function GET(req: NextRequest) {
       status: "published",
     });
 
-    return NextResponse.json({ success: true, count: jobs.length, jobs });
+    return NextResponse.json(
+      { success: true, count: jobs.length, jobs },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        },
+      }
+    );
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch jobs" }, { status: 500 });
   }
@@ -46,6 +54,13 @@ export async function POST(req: NextRequest) {
       postedAt: new Date(),
       status: body.status || "published",
     });
+
+    // Event Trigger: Notify active seekers of new matching job
+    if (newJob.status === "published") {
+      notifyMatchingSeekersOfJob(newJob).catch((err) =>
+        console.warn("Failed to notify seekers of new job:", err)
+      );
+    }
 
     return NextResponse.json({ success: true, job: newJob });
   } catch (error) {

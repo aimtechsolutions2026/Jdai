@@ -3,6 +3,8 @@ import { User, IUser } from "@/models/User";
 import { Job, IJob } from "@/models/Job";
 import { SeekerProfile, ISeekerProfile } from "@/models/SeekerProfile";
 import { Application, IApplication } from "@/models/Application";
+import { IngestionJob, IIngestionJob } from "@/models/IngestionJob";
+import { Notification, INotification, NotificationType } from "@/models/Notification";
 import { MCQQuestion, IMCQQuestion } from "@/models/MCQQuestion";
 import { DailyAttempt } from "@/models/DailyAttempt";
 import { SEED_JOBS, SEED_MCQS, SEED_CANDIDATES } from "./seed-data";
@@ -10,6 +12,7 @@ import { SEED_JOBS, SEED_MCQS, SEED_CANDIDATES } from "./seed-data";
 // In-memory runtime cache stores
 let memoryJobs: any[] = [];
 let memoryMCQs: any[] = [];
+let memoryNotifications: any[] = [];
 let memoryUsers: any[] = [
   {
     _id: "66e000000000000000000001",
@@ -50,6 +53,7 @@ let memoryProfiles: any[] = [];
 
 let memoryApplications: any[] = [];
 let memoryAttempts: any[] = [];
+let memoryIngestionJobs: any[] = [];
 
 // JOB REPOSITORY
 export const JobRepository = {
@@ -76,11 +80,7 @@ export const JobRepository = {
           query.location = { $regex: filters.location, $options: "i" };
         }
         if (filters.search) {
-          query.$or = [
-            { role: { $regex: filters.search, $options: "i" } },
-            { companyName: { $regex: filters.search, $options: "i" } },
-            { skills: { $in: [new RegExp(filters.search, "i")] } },
-          ];
+          query.$text = { $search: filters.search };
         }
         if (filters.salaryMin && filters.salaryMin > 0) {
           query["salaryRange.max"] = { $gte: filters.salaryMin };
@@ -236,11 +236,11 @@ export const UserRepository = {
     if (!identifier || !identifier.trim()) return null;
     const clean = identifier.trim();
     if (clean.includes("@")) {
-      return this.findByEmail(clean);
+      return UserRepository.findByEmail(clean);
     }
-    const byEmail = await this.findByEmail(clean);
+    const byEmail = await UserRepository.findByEmail(clean);
     if (byEmail) return byEmail;
-    return this.findByPhone(clean);
+    return UserRepository.findByPhone(clean);
   },
 
   async findById(id: string) {
@@ -269,6 +269,52 @@ export const UserRepository = {
     };
     memoryUsers.push(newUser);
     return newUser;
+  },
+
+  async updateUser(id: string, updateData: any) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const user = await User.findByIdAndUpdate(
+          id,
+          { ...updateData },
+          { new: true }
+        ).lean();
+        if (user) return user;
+      } catch {}
+    }
+    const idx = memoryUsers.findIndex((u) => String(u._id) === id);
+    if (idx !== -1) {
+      memoryUsers[idx] = { ...memoryUsers[idx], ...updateData, updatedAt: new Date() };
+      return memoryUsers[idx];
+    }
+    return null;
+  },
+
+  async findByResetToken(token: string) {
+    if (!token) return null;
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const user = await User.findOne({
+          resetPasswordToken: token,
+          resetPasswordExpires: { $gt: new Date() },
+        }).lean();
+        if (user) return user;
+      } catch {}
+    }
+    return (
+      memoryUsers.find(
+        (u: any) =>
+          u.resetPasswordToken === token &&
+          u.resetPasswordExpires &&
+          new Date(u.resetPasswordExpires) > new Date()
+      ) || null
+    );
+  },
+
+  async findAll() {
+    return UserRepository.getAllUsers();
   },
 
   async getAllUsers() {
@@ -601,4 +647,248 @@ export const ApplicationRepository = {
     return true;
   },
 };
+
+// INGESTION JOB REPOSITORY
+export const IngestionJobRepository = {
+  async create(data: {
+    type: "resume" | "jd_paste" | "jd_link";
+    status?: "processing" | "completed" | "failed";
+    inputRef?: string;
+    userId?: string;
+    result?: any;
+    error?: string | null;
+  }) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const job = await IngestionJob.create({
+          status: "processing",
+          ...data,
+        });
+        return job.toObject();
+      } catch (e) {
+        console.warn("MongoDB IngestionJob.create failed, falling back to memory:", e);
+      }
+    }
+    const newJob = {
+      _id: `job_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      type: data.type,
+      status: data.status || "processing",
+      inputRef: data.inputRef || "",
+      userId: data.userId || null,
+      result: data.result || null,
+      error: data.error || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    memoryIngestionJobs.unshift(newJob);
+    return newJob;
+  },
+
+  async findById(id: string) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const job = await IngestionJob.findById(id).lean();
+        if (job) return job;
+      } catch {}
+    }
+    return memoryIngestionJobs.find((j) => String(j._id) === String(id)) || null;
+  },
+
+  async update(
+    id: string,
+    updates: {
+      status?: "processing" | "completed" | "failed";
+      result?: any;
+      error?: string | null;
+    }
+  ) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const job = await IngestionJob.findByIdAndUpdate(
+          id,
+          { ...updates, updatedAt: new Date() },
+          { new: true }
+        ).lean();
+        if (job) return job;
+      } catch {}
+    }
+    const idx = memoryIngestionJobs.findIndex((j) => String(j._id) === String(id));
+    if (idx !== -1) {
+      memoryIngestionJobs[idx] = {
+        ...memoryIngestionJobs[idx],
+        ...updates,
+        updatedAt: new Date(),
+      };
+      return memoryIngestionJobs[idx];
+    }
+    return null;
+  },
+};
+
+export const NotificationRepository = {
+  async create(data: {
+    userId: string;
+    type: NotificationType;
+    title: string;
+    body: string;
+    relatedEntityId?: string;
+    actionUrl?: string;
+    badgeText?: string;
+    read?: boolean;
+    createdAt?: Date;
+  }) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const notif = await Notification.create({
+          userId: data.userId,
+          type: data.type,
+          title: data.title,
+          body: data.body,
+          relatedEntityId: data.relatedEntityId,
+          actionUrl: data.actionUrl,
+          badgeText: data.badgeText,
+          read: data.read ?? false,
+          createdAt: data.createdAt || new Date(),
+        });
+        return notif.toObject();
+      } catch (err) {
+        console.warn("MongoDB Notification.create failed, using memory store:", err);
+      }
+    }
+    const newNotif = {
+      _id: `notif_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      userId: String(data.userId),
+      type: data.type,
+      title: data.title,
+      body: data.body,
+      relatedEntityId: data.relatedEntityId,
+      actionUrl: data.actionUrl,
+      badgeText: data.badgeText,
+      read: data.read ?? false,
+      createdAt: data.createdAt || new Date(),
+      updatedAt: new Date(),
+    };
+    memoryNotifications.unshift(newNotif);
+    return newNotif;
+  },
+
+  async findByUser(
+    userId: string,
+    options?: { page?: number; limit?: number; read?: boolean }
+  ) {
+    const page = Math.max(1, options?.page || 1);
+    const limit = Math.min(100, Math.max(1, options?.limit || 20));
+    const skip = (page - 1) * limit;
+
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const query: any = { userId };
+        if (options?.read !== undefined) {
+          query.read = options.read;
+        }
+        const notifs = await Notification.find(query)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean();
+        return notifs;
+      } catch (err) {
+        console.warn("MongoDB Notification.find failed, using memory store:", err);
+      }
+    }
+
+    return memoryNotifications
+      .filter((n) => {
+        if (String(n.userId) !== String(userId)) return false;
+        if (options?.read !== undefined && n.read !== options.read) return false;
+        return true;
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(skip, skip + limit);
+  },
+
+  async countUnread(userId: string) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        return await Notification.countDocuments({ userId, read: false });
+      } catch {}
+    }
+    return memoryNotifications.filter(
+      (n) => String(n.userId) === String(userId) && !n.read
+    ).length;
+  },
+
+  async countByUser(userId: string) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        return await Notification.countDocuments({ userId });
+      } catch {}
+    }
+    return memoryNotifications.filter((n) => String(n.userId) === String(userId)).length;
+  },
+
+  async findById(id: string) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const notif = await Notification.findById(id).lean();
+        if (notif) return notif;
+      } catch {}
+    }
+    return memoryNotifications.find((n) => String(n._id) === String(id)) || null;
+  },
+
+  async markAsRead(id: string, userId?: string) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const query: any = { _id: id };
+        if (userId) query.userId = userId;
+        const updated = await Notification.findOneAndUpdate(
+          query,
+          { read: true },
+          { new: true }
+        ).lean();
+        if (updated) return updated;
+      } catch {}
+    }
+    const idx = memoryNotifications.findIndex(
+      (n) => String(n._id) === String(id) && (!userId || String(n.userId) === String(userId))
+    );
+    if (idx !== -1) {
+      memoryNotifications[idx].read = true;
+      memoryNotifications[idx].updatedAt = new Date();
+      return memoryNotifications[idx];
+    }
+    return null;
+  },
+
+  async markAllAsRead(userId: string) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const res = await Notification.updateMany({ userId, read: false }, { read: true });
+        return res.modifiedCount;
+      } catch {}
+    }
+    let count = 0;
+    for (const n of memoryNotifications) {
+      if (String(n.userId) === String(userId) && !n.read) {
+        n.read = true;
+        n.updatedAt = new Date();
+        count++;
+      }
+    }
+    return count;
+  },
+};
+
+
 

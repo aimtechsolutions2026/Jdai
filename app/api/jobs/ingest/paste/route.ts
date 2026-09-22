@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { extractJobWithGroq } from "@/lib/groq";
+import { IngestionJobRepository } from "@/lib/repositories";
+import { processJdPasteJob } from "@/lib/ingestion-worker";
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,15 +20,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const extracted = await extractJobWithGroq(text);
+    // 1. Create IngestionJob in MongoDB with status "processing"
+    const job = await IngestionJobRepository.create({
+      type: "jd_paste",
+      status: "processing",
+      inputRef: text.slice(0, 120),
+      userId: session.userId,
+    });
 
-    return NextResponse.json({ success: true, extracted });
+    const jobId = String(job._id);
+
+    // 2. Trigger asynchronous background worker (fire-and-forget)
+    processJdPasteJob(jobId, text).catch((err) => {
+      console.error(`[IngestPaste] Background worker error for job ${jobId}:`, err);
+    });
+
+    // 3. Return immediately with HTTP 202 Accepted
+    return NextResponse.json(
+      {
+        success: true,
+        jobId,
+        status: "processing",
+        message: "Job description accepted. Automated extraction is running in the background.",
+      },
+      { status: 202 }
+    );
   } catch (error: any) {
     console.error("Paste ingestion error:", error);
     return NextResponse.json(
-      { error: error?.message || "Failed to extract job from text" },
+      { error: error?.message || "Failed to initiate job extraction" },
       { status: 500 }
     );
   }
 }
-

@@ -44,20 +44,7 @@ export default function NotificationsPage() {
       if (res.ok) {
         const data = await res.json();
         const serverNotifs: NotificationItem[] = data.notifications || [];
-
-        let readIds: string[] = [];
-        try {
-          const stored = localStorage.getItem("codifypro_read_notifs");
-          if (stored) readIds = JSON.parse(stored);
-        } catch {}
-
-        const readSet = new Set(readIds);
-        const updated = serverNotifs.map((item) => ({
-          ...item,
-          unread: item.unread && !readSet.has(item.id),
-        }));
-
-        setNotifications(updated);
+        setNotifications(serverNotifs);
       }
     } catch (err) {
       console.error("Failed to load notifications:", err);
@@ -72,30 +59,26 @@ export default function NotificationsPage() {
 
   const unreadCount = notifications.filter((n) => n.unread).length;
 
-  const markAllAsRead = () => {
-    const allIds = notifications.map((n) => n.id);
-    try {
-      localStorage.setItem("codifypro_read_notifs", JSON.stringify(allIds));
-    } catch {}
+  const markAllAsRead = async () => {
     setNotifications((prev) => prev.map((item) => ({ ...item, unread: false })));
+    try {
+      await fetch("/api/notifications/read-all", { method: "PUT" });
+    } catch (err) {
+      console.warn("Failed to mark all notifications read on server:", err);
+    }
   };
 
-  const toggleReadStatus = (id: string, currentlyUnread: boolean) => {
-    try {
-      const stored = localStorage.getItem("codifypro_read_notifs");
-      let readIds: string[] = stored ? JSON.parse(stored) : [];
-
-      if (currentlyUnread) {
-        if (!readIds.includes(id)) readIds.push(id);
-      } else {
-        readIds = readIds.filter((item) => item !== id);
-      }
-      localStorage.setItem("codifypro_read_notifs", JSON.stringify(readIds));
-    } catch {}
-
+  const toggleReadStatus = async (id: string, currentlyUnread: boolean) => {
     setNotifications((prev) =>
       prev.map((item) => (item.id === id ? { ...item, unread: !currentlyUnread } : item))
     );
+    try {
+      if (currentlyUnread) {
+        await fetch(`/api/notifications/${id}/read`, { method: "PATCH" });
+      }
+    } catch (err) {
+      console.warn("Failed to update notification read status on server:", err);
+    }
   };
 
   const getIcon = (type: NotificationItem["type"]) => {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { McqRepository, ProfileRepository } from "@/lib/repositories";
 import { redis } from "@/lib/redis";
+import { createNotification } from "@/lib/notifications";
 
 export async function POST(req: NextRequest) {
   try {
@@ -76,6 +77,21 @@ export async function POST(req: NextRequest) {
       },
       xp: newXp,
     });
+
+    // Event Trigger: Create Streak Notification
+    if (isCorrect) {
+      try {
+        await createNotification(session.userId, "streak", {
+          title: "Daily Streak Active 🔥",
+          body: `You completed today's coding challenge! Current learning streak: ${currentStreak} day${currentStreak === 1 ? "" : "s"}.`,
+          relatedEntityId: questionId,
+          actionUrl: "/mcq",
+          badgeText: `${currentStreak}d Streak`,
+        });
+      } catch (notifErr) {
+        console.warn("Failed to create streak notification:", notifErr);
+      }
+    }
 
     // 5. Store Redis flag for 24h
     const attemptRecord = {

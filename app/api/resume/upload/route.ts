@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { parseResumeWithGroq } from "@/lib/groq";
-import { ProfileRepository, UserRepository } from "@/lib/repositories";
+import { IngestionJobRepository } from "@/lib/repositories";
+import { processResumeJob } from "@/lib/ingestion-worker";
 import pdfParse from "pdf-parse";
 
 export async function POST(req: NextRequest) {
@@ -45,66 +45,38 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. The raw PDF buffer is discarded immediately after text extraction.
-    // No PDF file is stored on external cloud storage or database,
-    // preserving candidate data privacy and eliminating storage costs.
+    // 3. Raw PDF buffer is discarded immediately from memory (zero disk persistence).
+    // Candidate privacy is preserved.
 
-    // 4. Send text to AI and heuristic parsing engine for full structured extraction
-    const parsedData = await parseResumeWithGroq(extractedText);
-
-    // 5. Calculate profile completeness
-    let completeness = 20;
-    if (parsedData.name && (parsedData.email || parsedData.phone)) completeness += 15;
-    if (parsedData.skills && parsedData.skills.length > 0) completeness += 15;
-    if (parsedData.experience && parsedData.experience.length > 0) completeness += 20;
-    if (parsedData.education && parsedData.education.length > 0) completeness += 10;
-    if (parsedData.summary || parsedData.headline) completeness += 10;
-    if (parsedData.certificates && parsedData.certificates.length > 0) completeness += 5;
-    if (parsedData.projects && parsedData.projects.length > 0) completeness += 5;
-    completeness = Math.min(completeness, 100);
-
-    let updatedProfile = {
-      parsedResumeRaw: parsedData,
-      name: parsedData.name || session?.name || "",
-      email: parsedData.email || session?.email || "",
-      phone: parsedData.phone || "",
-      headline: parsedData.headline || "",
-      summary: parsedData.summary || "",
-      location: parsedData.location || "",
-      pincode: parsedData.pincode || "",
-      skills: parsedData.skills || [],
-      experience: parsedData.experience || [],
-      education: parsedData.education || [],
-      certificates: parsedData.certificates || [],
-      achievements: parsedData.achievements || [],
-      projects: parsedData.projects || [],
-      socialLinks: parsedData.socialLinks || { linkedin: "", github: "", portfolio: "" },
-      languages: parsedData.languages || [],
-      salaryExpectation: parsedData.salaryExpectation || { min: 800000, max: 1500000, currency: "INR" },
-      profileCompleteness: completeness,
-    };
-
-    // 6. If logged in, persist to SeekerProfile and User
-    if (session) {
-      if (parsedData.name || parsedData.phone) {
-        await UserRepository.update(session.userId, {
-          ...(parsedData.name ? { name: parsedData.name } : {}),
-          ...(parsedData.phone ? { phone: parsedData.phone } : {}),
-        });
-      }
-      updatedProfile = await ProfileRepository.upsertByUserId(session.userId, updatedProfile);
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: "Resume parsed successfully and all profile fields populated. Uploaded document has been securely processed and discarded.",
-      parsedData,
-      profile: updatedProfile,
+    // 4. Persist IngestionJob in MongoDB with status "processing"
+    const job = await IngestionJobRepository.create({
+      type: "resume",
+      status: "processing",
+      inputRef: filename,
+      userId: session?.userId,
     });
+
+    const jobId = String(job._id);
+
+    // 5. Trigger background worker asynchronously (fire-and-forget)
+    processResumeJob(jobId, extractedText, session).catch((err) => {
+      console.error(`[Upload] Unhandled background resume error for job ${jobId}:`, err);
+    });
+
+    // 6. Return immediately with HTTP 202 Accepted
+    return NextResponse.json(
+      {
+        success: true,
+        jobId,
+        status: "processing",
+        message: "Resume upload accepted. Automated extraction is running in the background.",
+      },
+      { status: 202 }
+    );
   } catch (error: any) {
     console.error("Resume upload error:", error);
     return NextResponse.json(
-      { error: error?.message || "Failed to process resume" },
+      { error: error?.message || "Failed to process resume upload" },
       { status: 500 }
     );
   }
