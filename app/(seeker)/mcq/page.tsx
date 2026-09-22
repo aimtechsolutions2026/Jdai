@@ -335,7 +335,7 @@ export default function DailyMcqPage() {
                 <span>14 Days Ago</span>
                 <span className="flex items-center gap-1 font-bold text-accent">
                   <Flame className="h-3 w-3 fill-accent" />
-                  {streakData?.currentStreak || 3}d Current
+                  {streakData?.currentStreak || 0}d Current
                 </span>
                 <span>Today</span>
               </div>
@@ -351,36 +351,42 @@ export default function DailyMcqPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {streakData?.leaderboard?.map((entry: any) => (
-                <div
-                  key={entry.rank}
-                  className="flex items-center justify-between p-2.5 rounded-xl bg-surface-alt border border-border text-xs"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span
-                      className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                        entry.rank === 1
-                          ? "bg-amber-100 text-amber-700"
-                          : entry.rank === 2
-                          ? "bg-slate-200 text-slate-700"
-                          : "bg-slate-100 text-text-secondary"
-                      }`}
-                    >
-                      {entry.rank}
-                    </span>
-                    <span className="font-semibold text-text-primary">
-                      {entry.name}
-                    </span>
+              {streakData?.leaderboard && streakData.leaderboard.length > 0 ? (
+                streakData.leaderboard.map((entry: any) => (
+                  <div
+                    key={entry.rank}
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-surface-alt border border-border text-xs"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                          entry.rank === 1
+                            ? "bg-amber-100 text-amber-700"
+                            : entry.rank === 2
+                            ? "bg-slate-200 text-slate-700"
+                            : "bg-slate-100 text-text-secondary"
+                        }`}
+                      >
+                        {entry.rank}
+                      </span>
+                      <span className="font-semibold text-text-primary">
+                        {entry.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-text-secondary">{entry.xp} XP</span>
+                      <span className="flex items-center gap-0.5 font-bold text-accent">
+                        <Flame className="h-3.5 w-3.5 fill-accent" />
+                        {entry.streak}d
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-text-secondary">{entry.xp} XP</span>
-                    <span className="flex items-center gap-0.5 font-bold text-accent">
-                      <Flame className="h-3.5 w-3.5 fill-accent" />
-                      {entry.streak}d
-                    </span>
-                  </div>
+                ))
+              ) : (
+                <div className="py-6 text-center text-xs text-text-secondary">
+                  No streak leaders yet. Solve today&apos;s challenge to claim rank #1!
                 </div>
-              ))}
+              )}
             </CardContent>
           </Card>
         </div>

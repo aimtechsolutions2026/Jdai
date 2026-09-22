@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { parseResumeWithGroq } from "@/lib/groq";
-import { uploadFileToCloudinary } from "@/lib/cloudinary";
-import { ProfileRepository } from "@/lib/repositories";
+import { ProfileRepository, UserRepository } from "@/lib/repositories";
 import pdfParse from "pdf-parse";
 
 export async function POST(req: NextRequest) {
@@ -28,55 +27,77 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // 2. Extract text using pdf-parse with fallback
+    // 2. Extract text using pdf-parse in-memory with raw buffer stream fallback
     let extractedText = "";
     try {
       const pdfData = await pdfParse(buffer);
       extractedText = pdfData.text || "";
     } catch (e) {
-      console.warn("PDF text parse error, proceeding with filename/buffer heuristic:", e);
-      extractedText = "Alex Morgan - Senior Full-Stack Engineer with React, TypeScript, and Node.js experience.";
+      console.warn("PDF text parse warning, attempting stream fallback:", e);
     }
 
-    // 3. Upload to Cloudinary (or fallback data URI)
-    const { url: resumeUrl } = await uploadFileToCloudinary(buffer, filename, "resumes");
+    // If pdf-parse extracted minimal text, attempt ASCII/UTF-8 chunk recovery
+    if (!extractedText || extractedText.trim().length < 30) {
+      const rawStr = buffer.toString("utf-8");
+      const textChunks = rawStr.match(/[\x20-\x7E\t\n\r]{4,}/g);
+      if (textChunks && textChunks.length > 0) {
+        extractedText = textChunks.join("\n");
+      }
+    }
 
-    // 4. Send text to Groq for structured JSON extraction
+    // 3. The raw PDF buffer is discarded immediately after text extraction.
+    // No PDF file is stored on external cloud storage or database,
+    // preserving candidate data privacy and eliminating storage costs.
+
+    // 4. Send text to AI and heuristic parsing engine for full structured extraction
     const parsedData = await parseResumeWithGroq(extractedText);
 
     // 5. Calculate profile completeness
-    let completeness = 40;
-    if (parsedData.skills.length > 0) completeness += 20;
-    if (parsedData.experience.length > 0) completeness += 20;
-    if (parsedData.education.length > 0) completeness += 10;
-    if (parsedData.certificates.length > 0) completeness += 10;
+    let completeness = 20;
+    if (parsedData.name && (parsedData.email || parsedData.phone)) completeness += 15;
+    if (parsedData.skills && parsedData.skills.length > 0) completeness += 15;
+    if (parsedData.experience && parsedData.experience.length > 0) completeness += 20;
+    if (parsedData.education && parsedData.education.length > 0) completeness += 10;
+    if (parsedData.summary || parsedData.headline) completeness += 10;
+    if (parsedData.certificates && parsedData.certificates.length > 0) completeness += 5;
+    if (parsedData.projects && parsedData.projects.length > 0) completeness += 5;
     completeness = Math.min(completeness, 100);
 
     let updatedProfile = {
-      resumeUrl,
       parsedResumeRaw: parsedData,
-      name: parsedData.name || session?.name || "Alex Morgan",
-      email: parsedData.email || session?.email || "alex@example.com",
+      name: parsedData.name || session?.name || "",
+      email: parsedData.email || session?.email || "",
       phone: parsedData.phone || "",
-      location: parsedData.location || "Remote",
+      headline: parsedData.headline || "",
+      summary: parsedData.summary || "",
+      location: parsedData.location || "",
       pincode: parsedData.pincode || "",
       skills: parsedData.skills || [],
       experience: parsedData.experience || [],
       education: parsedData.education || [],
       certificates: parsedData.certificates || [],
-      salaryExpectation: parsedData.salaryExpectation || { min: 120000, max: 170000, currency: "USD" },
+      achievements: parsedData.achievements || [],
+      projects: parsedData.projects || [],
+      socialLinks: parsedData.socialLinks || { linkedin: "", github: "", portfolio: "" },
+      languages: parsedData.languages || [],
+      salaryExpectation: parsedData.salaryExpectation || { min: 800000, max: 1500000, currency: "INR" },
       profileCompleteness: completeness,
     };
 
-    // 6. If logged in, persist to SeekerProfile
+    // 6. If logged in, persist to SeekerProfile and User
     if (session) {
+      if (parsedData.name || parsedData.phone) {
+        await UserRepository.update(session.userId, {
+          ...(parsedData.name ? { name: parsedData.name } : {}),
+          ...(parsedData.phone ? { phone: parsedData.phone } : {}),
+        });
+      }
       updatedProfile = await ProfileRepository.upsertByUserId(session.userId, updatedProfile);
     }
 
     return NextResponse.json({
       success: true,
-      isGuest: !session,
-      resumeUrl,
+      message: "Resume parsed successfully and all profile fields populated. Uploaded document has been securely processed and discarded.",
       parsedData,
       profile: updatedProfile,
     });

@@ -394,7 +394,18 @@ export default function JobsPage() {
                       {/* Company & Role info */}
                       <div className="flex items-start gap-3.5">
                         <div className="h-12 w-12 rounded-xl bg-slate-100 border border-border flex items-center justify-center font-black text-base text-secondary overflow-hidden shrink-0">
-                          {job.companyName?.[0] || "C"}
+                          {job.companyLogoUrl ? (
+                            <img
+                              src={job.companyLogoUrl}
+                              alt={job.companyName}
+                              className="h-full w-full object-contain p-1"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = "none";
+                              }}
+                            />
+                          ) : (
+                            job.companyName?.[0] || "C"
+                          )}
                         </div>
                         <div>
                           <Link href={`/jobs/${job._id}`}>

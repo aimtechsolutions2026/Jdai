@@ -25,7 +25,7 @@ export async function connectToDatabase(): Promise<typeof mongoose | null> {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
-      serverSelectionTimeoutMS: 3000,
+      serverSelectionTimeoutMS: 8000,
     };
 
     cached.promise = mongoose
@@ -39,14 +39,19 @@ export async function connectToDatabase(): Promise<typeof mongoose | null> {
           err.message,
           "— Utilizing mock in-memory fallback layer."
         );
+        cached.promise = null;
         return null;
       });
   }
 
   try {
     cached.conn = await cached.promise;
+    if (!cached.conn) {
+      cached.promise = null;
+    }
   } catch (e) {
     cached.promise = null;
+    cached.conn = null;
     return null;
   }
 

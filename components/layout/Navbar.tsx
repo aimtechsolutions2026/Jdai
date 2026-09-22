@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Compass,
   Briefcase,
   Flame,
   User as UserIcon,
@@ -20,10 +19,12 @@ import {
   Users,
   HelpCircle,
   ShieldCheck,
+  Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { NotificationDropdown } from "./NotificationDropdown";
+import { CodifyProLogo } from "./CodifyProLogo";
 
 interface CurrentUser {
   id: string;
@@ -41,7 +42,7 @@ export function Navbar() {
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-  const [streakCount, setStreakCount] = useState<number>(3);
+  const [streakCount, setStreakCount] = useState<number>(0);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -97,23 +98,8 @@ export function Navbar() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8">
         {/* Brand Logo */}
         <div className="flex items-center gap-4 sm:gap-8 shrink-0">
-          <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group shrink-0">
-            <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-primary text-white shadow-sm transition-transform group-hover:scale-105 shrink-0">
-              <Compass className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1 sm:gap-1.5">
-                <span className="text-base sm:text-lg font-bold tracking-tight text-secondary">
-                  CodifyPro
-                </span>
-                <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-primary border border-blue-200/60 shrink-0">
-                  AI
-                </span>
-              </div>
-              <span className="text-[9px] sm:text-[10px] font-medium text-text-secondary leading-none">
-                by Aimtech Solutions
-              </span>
-            </div>
+          <Link href="/" className="group shrink-0">
+            <CodifyProLogo withText />
           </Link>
 
           {/* Desktop Navigation Links */}
@@ -364,6 +350,15 @@ export function Navbar() {
                         <FileCheck2 className="h-4 w-4 text-text-secondary" />
                         <span>ATS Resume Center</span>
                       </Link>
+
+                      <Link
+                        href="/notifications"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg text-text-primary hover:bg-surface-alt hover:text-primary transition-colors"
+                      >
+                        <Bell className="h-4 w-4 text-text-secondary" />
+                        <span>Notification Center</span>
+                      </Link>
                     </div>
 
                     <div className="border-t border-border mt-2 pt-1">
@@ -488,7 +483,7 @@ export function Navbar() {
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-secondary hover:bg-surface-alt"
                   >
-                    <Compass className="h-4 w-4 text-text-secondary" />
+                    <Briefcase className="h-4 w-4 text-text-secondary" />
                     <span>View Public Job Board</span>
                   </Link>
                 </div>
@@ -585,6 +580,15 @@ export function Navbar() {
 
               {/* Common Profile & Logout Footer */}
               <div className="border-t border-border pt-2 mt-2 space-y-1">
+                <Link
+                  href="/notifications"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-primary hover:bg-surface-alt"
+                >
+                  <Bell className="h-4 w-4 text-primary" />
+                  <span>Notification Center</span>
+                </Link>
+
                 {user.role !== "seeker" && (
                   <Link
                     href="/profile"

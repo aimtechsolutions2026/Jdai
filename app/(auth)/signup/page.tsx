@@ -4,7 +4,6 @@ import React, { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Compass,
   ArrowRight,
   Lock,
   Mail,
@@ -14,9 +13,14 @@ import {
   Briefcase,
   Search,
   CheckCircle2,
+  Check,
+  X,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CodifyProLogo } from "@/components/layout/CodifyProLogo";
 
 function SignUpForm() {
   const router = useRouter();
@@ -26,21 +30,70 @@ function SignUpForm() {
   const [role, setRole] = useState<"seeker" | "recruiter">(initialRole);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Password constraint checks
+  const hasMinLength = password.length >= 8;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const isPasswordValid = hasMinLength && hasUppercase && hasLowercase && hasNumber;
+  const doPasswordsMatch = Boolean(
+    password && confirmPassword && password === confirmPassword
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    // 1. Check phone number (required & at least 8 digits)
+    const cleanPhone = phone.replace(/[^0-9]/g, "");
+    if (cleanPhone.length < 8) {
+      setError("Please enter a valid mobile / phone number (at least 8 digits).");
+      return;
+    }
+
+    // 2. Check password constraints
+    if (!isPasswordValid) {
+      setError(
+        "Password must be at least 8 characters long and contain uppercase, lowercase, and a number."
+      );
+      return;
+    }
+
+    // 3. Check confirm password match
+    if (password !== confirmPassword) {
+      setError("Passwords do not match. Please re-enter.");
+      return;
+    }
+
+    // 4. Check Terms and Conditions acceptance
+    if (!acceptTerms) {
+      setError("You must accept the Terms and Conditions and Privacy Policy to proceed.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, name, role, phone }),
+        body: JSON.stringify({
+          email: email.trim(),
+          phone: phone.trim(),
+          password,
+          name: name.trim() || email.split("@")[0] || "Candidate",
+          role,
+          termsAccepted: acceptTerms,
+        }),
       });
 
       const data = await res.json();
@@ -49,7 +102,6 @@ function SignUpForm() {
       }
 
       if (role === "seeker") {
-        // Direct to profile for resume upload onboarding
         router.push("/profile?onboarding=true");
       } else {
         router.push("/recruiter/dashboard");
@@ -65,18 +117,8 @@ function SignUpForm() {
   return (
     <div className="min-h-screen bg-surface-alt flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <Link href="/" className="inline-flex items-center gap-2.5 mb-6 group">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-sm transition-transform group-hover:scale-105">
-            <Compass className="h-6 w-6" />
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xl font-bold tracking-tight text-secondary">
-              CodifyPro
-            </span>
-            <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary border border-blue-200">
-              AI
-            </span>
-          </div>
+        <Link href="/" className="inline-flex items-center mb-6 group">
+          <CodifyProLogo withText size="md" />
         </Link>
         <h2 className="text-2xl font-black tracking-tight text-secondary">
           Create your account
@@ -127,6 +169,7 @@ function SignUpForm() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Full Name */}
             <div>
               <label className="block text-xs font-semibold text-text-primary uppercase tracking-wider mb-1.5">
                 Full Name
@@ -141,9 +184,10 @@ function SignUpForm() {
               />
             </div>
 
+            {/* Email Address */}
             <div>
               <label className="block text-xs font-semibold text-text-primary uppercase tracking-wider mb-1.5">
-                Work Email
+                Email Address
               </label>
               <Input
                 type="email"
@@ -155,40 +199,178 @@ function SignUpForm() {
               />
             </div>
 
+            {/* Phone Number (Required) */}
             <div>
               <label className="block text-xs font-semibold text-text-primary uppercase tracking-wider mb-1.5">
-                Password
-              </label>
-              <Input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 6 characters"
-                icon={<Lock className="h-4 w-4" />}
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-text-primary uppercase tracking-wider mb-1.5">
-                Phone Number (optional)
+                Phone Number
               </label>
               <Input
                 type="tel"
+                required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+1 (555) 000-0000"
+                placeholder="+1 (555) 000-0000 or +91 98765 43210"
                 icon={<Phone className="h-4 w-4" />}
               />
             </div>
 
-            <Button type="submit" size="lg" className="w-full mt-2" isLoading={loading}>
-              Create {role === "seeker" ? "Job Seeker" : "Recruiter"} Account
+            {/* Password */}
+            <div>
+              <label className="block text-xs font-semibold text-text-primary uppercase tracking-wider mb-1.5">
+                Password
+              </label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Min 8 chars, Aa, 0-9"
+                  icon={<Lock className="h-4 w-4" />}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+
+              {/* Live Password Constraint Checklist */}
+              {password && (
+                <div className="mt-2 rounded-xl bg-slate-50 border border-slate-200 p-2.5 space-y-1 text-[11px]">
+                  <div className="font-semibold text-slate-700 pb-0.5">Password requirements:</div>
+                  <div
+                    className={`flex items-center gap-1.5 ${
+                      hasMinLength ? "text-emerald-600 font-medium" : "text-slate-500"
+                    }`}
+                  >
+                    {hasMinLength ? (
+                      <Check className="h-3.5 w-3.5 text-emerald-600" />
+                    ) : (
+                      <X className="h-3.5 w-3.5 text-slate-400" />
+                    )}
+                    <span>At least 8 characters</span>
+                  </div>
+                  <div
+                    className={`flex items-center gap-1.5 ${
+                      hasUppercase && hasLowercase
+                        ? "text-emerald-600 font-medium"
+                        : "text-slate-500"
+                    }`}
+                  >
+                    {hasUppercase && hasLowercase ? (
+                      <Check className="h-3.5 w-3.5 text-emerald-600" />
+                    ) : (
+                      <X className="h-3.5 w-3.5 text-slate-400" />
+                    )}
+                    <span>Uppercase and lowercase letters</span>
+                  </div>
+                  <div
+                    className={`flex items-center gap-1.5 ${
+                      hasNumber ? "text-emerald-600 font-medium" : "text-slate-500"
+                    }`}
+                  >
+                    {hasNumber ? (
+                      <Check className="h-3.5 w-3.5 text-emerald-600" />
+                    ) : (
+                      <X className="h-3.5 w-3.5 text-slate-400" />
+                    )}
+                    <span>At least one number (0-9)</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label className="block text-xs font-semibold text-text-primary uppercase tracking-wider mb-1.5">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <Input
+                  type={showConfirmPassword ? "text" : "password"}
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Re-enter your password"
+                  icon={<Lock className="h-4 w-4" />}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                  aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+
+              {confirmPassword && (
+                <div className="mt-1.5 text-[11px] font-medium">
+                  {doPasswordsMatch ? (
+                    <span className="text-emerald-600 flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Passwords match
+                    </span>
+                  ) : (
+                    <span className="text-rose-600 flex items-center gap-1">
+                      <AlertCircle className="h-3.5 w-3.5" /> Passwords do not match
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Accept Terms & Conditions Checkbox */}
+            <div className="flex items-start gap-2.5 pt-2">
+              <input
+                type="checkbox"
+                id="acceptTerms"
+                required
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary/20 accent-primary cursor-pointer shrink-0"
+              />
+              <label
+                htmlFor="acceptTerms"
+                className="text-xs text-text-secondary leading-relaxed cursor-pointer select-none"
+              >
+                I accept and agree to CodifyPro&apos;s{" "}
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  className="text-primary font-semibold hover:underline"
+                >
+                  Terms and Conditions
+                </Link>{" "}
+                and{" "}
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  className="text-primary font-semibold hover:underline"
+                >
+                  Privacy Policy
+                </Link>
+                .
+              </label>
+            </div>
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full mt-3 font-bold gap-2 text-sm shadow-sm"
+              isLoading={loading}
+            >
+              <span>Let&apos;s Get Started</span>
+              <ArrowRight className="h-4 w-4" />
             </Button>
           </form>
 
           <p className="text-[11px] text-text-secondary text-center mt-4">
-            By registering, you agree to CodifyPro&apos;s Terms of Service and Privacy Policy.
+            Protected by CodifyPro Identity &amp; Security Services.
           </p>
         </div>
       </div>
@@ -198,9 +380,14 @@ function SignUpForm() {
 
 export default function SignUpPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-surface-alt flex items-center justify-center">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-surface-alt flex items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
       <SignUpForm />
     </Suspense>
   );
 }
-

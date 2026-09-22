@@ -1,0 +1,4 @@
+# Render Static Site and SPA Rewrite Rule
+# Ensures page reloads (e.g. /profile, /jobs, /dashboard) do not return 404
+/*    /index.html   200
+

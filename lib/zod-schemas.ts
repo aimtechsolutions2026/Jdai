@@ -1,51 +1,78 @@
 import { z } from "zod";
 
+// Safe string coercer that never throws on numbers or nulls
+const safeString = z
+  .union([z.string(), z.number(), z.null(), z.undefined()])
+  .transform((val) => (val === null || val === undefined ? "" : String(val).trim()))
+  .default("");
+
 // 1. Resume AI Extracted Schema
 export const ResumeParsedSchema = z.object({
-  name: z.string().default(""),
-  email: z.string().email().optional().or(z.literal("")),
-  phone: z.string().default(""),
-  location: z.string().default(""),
-  pincode: z.string().default(""),
+  name: safeString,
+  email: safeString,
+  phone: safeString,
+  headline: safeString,
+  summary: safeString,
+  location: safeString,
+  pincode: safeString,
   skills: z.array(z.string()).default([]),
   experience: z
     .array(
       z.object({
-        company: z.string().default(""),
-        title: z.string().default(""),
-        from: z.string().default(""),
-        to: z.string().default(""),
-        description: z.string().default(""),
+        company: safeString,
+        title: safeString,
+        from: safeString,
+        to: safeString,
+        description: safeString,
       })
     )
     .default([]),
   education: z
     .array(
       z.object({
-        school: z.string().default(""),
-        degree: z.string().default(""),
-        year: z.string().default(""),
+        school: safeString,
+        degree: safeString,
+        year: safeString,
       })
     )
     .default([]),
   certificates: z
     .array(
       z.object({
-        name: z.string().default(""),
-        issuer: z.string().default(""),
-        certificateId: z.string().optional().default(""),
-        url: z.string().default(""),
-        date: z.string().default(""),
+        name: safeString,
+        issuer: safeString,
+        certificateId: safeString,
+        url: safeString,
+        date: safeString,
       })
     )
     .default([]),
+  achievements: z.array(z.string()).default([]),
+  projects: z
+    .array(
+      z.object({
+        name: safeString,
+        description: safeString,
+        techStack: safeString,
+        url: safeString,
+      })
+    )
+    .default([]),
+  socialLinks: z
+    .object({
+      linkedin: safeString,
+      github: safeString,
+      portfolio: safeString,
+    })
+    .default({}),
+  languages: z.array(z.string()).default([]),
   salaryExpectation: z
     .object({
-      min: z.number().default(0),
-      max: z.number().default(0),
-      currency: z.string().default("USD"),
+      min: z.coerce.number().default(0),
+      max: z.coerce.number().default(0),
+      currency: safeString.default("INR"),
     })
-    .default({ min: 0, max: 0, currency: "USD" }),
+    .default({ min: 0, max: 0, currency: "INR" }),
 });
 
 export type ResumeParsedData = z.infer<typeof ResumeParsedSchema>;
@@ -60,9 +87,9 @@ export const JobExtractedSchema = z.object({
     .object({
       min: z.number().default(0),
       max: z.number().default(0),
-      currency: z.string().default("USD"),
+      currency: z.string().default("INR"),
     })
-    .default({ min: 0, max: 0, currency: "USD" }),
+    .default({ min: 0, max: 0, currency: "INR" }),
   location: z.string().default("Remote"),
   pincode: z.string().default(""),
   experienceRequired: z
@@ -83,14 +110,22 @@ export const JobCreateSchema = JobExtractedSchema;
 // 3. User Auth Schemas
 export const RegisterSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+  name: z.string().min(1, "Name is required").optional(),
   role: z.enum(["seeker", "recruiter", "admin"]).default("seeker"),
-  phone: z.string().optional(),
+  phone: z
+    .string()
+    .min(8, "Please enter a valid phone number (at least 8 digits)"),
+  termsAccepted: z.boolean().optional(),
 });
 
 export const LoginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  email: z.string().min(3, "Please enter your email or phone number"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -98,45 +133,66 @@ export const LoginSchema = z.object({
 export const ProfileUpdateSchema = z.object({
   name: z.string().optional(),
   phone: z.string().optional(),
+  headline: z.string().optional(),
+  summary: z.string().optional(),
   location: z.string().optional(),
   pincode: z.string().optional(),
   skills: z.array(z.string()).optional(),
   experience: z
     .array(
       z.object({
-        company: z.string(),
-        title: z.string(),
-        from: z.string(),
-        to: z.string(),
-        description: z.string(),
+        company: safeString,
+        title: safeString,
+        from: safeString,
+        to: safeString,
+        description: safeString,
       })
     )
     .optional(),
   education: z
     .array(
       z.object({
-        school: z.string(),
-        degree: z.string(),
-        year: z.string(),
+        school: safeString,
+        degree: safeString,
+        year: safeString,
       })
     )
     .optional(),
   certificates: z
     .array(
       z.object({
-        name: z.string(),
-        issuer: z.string(),
-        certificateId: z.string().optional(),
-        url: z.string().optional(),
-        date: z.string().optional(),
+        name: safeString,
+        issuer: safeString,
+        certificateId: safeString,
+        url: safeString,
+        date: safeString,
       })
     )
     .optional(),
+  achievements: z.array(z.string()).optional(),
+  projects: z
+    .array(
+      z.object({
+        name: safeString,
+        description: safeString,
+        techStack: safeString,
+        url: safeString,
+      })
+    )
+    .optional(),
+  socialLinks: z
+    .object({
+      linkedin: safeString,
+      github: safeString,
+      portfolio: safeString,
+    })
+    .optional(),
+  languages: z.array(z.string()).optional(),
   salaryExpectation: z
     .object({
-      min: z.number(),
-      max: z.number(),
-      currency: z.string(),
+      min: z.coerce.number().default(0),
+      max: z.coerce.number().default(0),
+      currency: safeString.default("INR"),
     })
     .optional(),
 });

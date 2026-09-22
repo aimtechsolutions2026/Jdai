@@ -58,15 +58,15 @@ export default function SeekerDashboardPage() {
     loadData();
   }, []);
 
-  const completeness = profile?.profileCompleteness || 60;
-  const streak = profile?.streak?.current || 3;
+  const completeness = profile?.profileCompleteness || 0;
+  const streak = profile?.streak?.current || 0;
 
   if (loading) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-10 space-y-6">
         <div className="h-10 w-64 bg-slate-200 animate-pulse rounded-xl" />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
             <div key={i} className="h-28 bg-slate-200 animate-pulse rounded-xl" />
           ))}
         </div>
@@ -96,8 +96,8 @@ export default function SeekerDashboardPage() {
         </div>
       </div>
 
-      {/* 4 Top KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Top KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Streak Card */}
         <Link href="/mcq" className="block group">
           <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5 shadow-card transition-all group-hover:border-amber-400 group-hover:shadow-hover">
@@ -141,25 +141,6 @@ export default function SeekerDashboardPage() {
             </div>
           </div>
         </Link>
-
-        {/* Recruiter Views */}
-        <div className="rounded-2xl border border-border bg-white p-5 shadow-card">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-text-secondary">
-              Profile Views
-            </span>
-            <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center text-success">
-              <Eye className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-secondary">18</span>
-            <span className="text-xs text-success font-semibold">+6 this week</span>
-          </div>
-          <div className="mt-2 text-xs text-text-secondary">
-            Recruiters searched your skills
-          </div>
-        </div>
 
         {/* Profile Completeness */}
         <Link href="/profile" className="block group">

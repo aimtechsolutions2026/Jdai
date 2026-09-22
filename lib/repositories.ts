@@ -15,9 +15,9 @@ let memoryUsers: any[] = [
     _id: "66e000000000000000000001",
     email: "seeker@codifypro.ai",
     passwordHash: "$2a$10$wJjK...mockhash",
-    name: "Alex Morgan",
+    name: "Candidate Seeker",
     role: "seeker",
-    phone: "+1 (555) 349-2041",
+    phone: "",
     avatarUrl: "",
     isVerified: true,
     createdAt: new Date(),
@@ -46,128 +46,9 @@ let memoryUsers: any[] = [
   },
 ];
 
-let memoryProfiles: any[] = [
-  {
-    userId: "66e000000000000000000001",
-    name: "Alex Morgan",
-    email: "seeker@codifypro.ai",
-    phone: "+1 (555) 349-2041",
-    location: "San Francisco, CA",
-    pincode: "94105",
-    skills: ["TypeScript", "React", "Next.js", "Node.js", "PostgreSQL", "Docker", "AWS"],
-    experience: [
-      {
-        company: "Apex Tech Labs",
-        title: "Senior Full-Stack Engineer",
-        from: "2022",
-        to: "Present",
-        description: "Built scalable web apps and high-performance serverless endpoints in Next.js and Go.",
-      },
-      {
-        company: "Starlight Systems",
-        title: "Software Engineer",
-        from: "2020",
-        to: "2022",
-        description: "Developed frontend client libraries and GraphQL microservices.",
-      },
-    ],
-    education: [
-      {
-        school: "UC Berkeley",
-        degree: "B.S. in Computer Science",
-        year: "2020",
-      },
-    ],
-    certificates: [
-      {
-        name: "AWS Solutions Architect Associate",
-        issuer: "Amazon Web Services",
-        certificateId: "AWS-SAA-802319",
-        url: "https://aws.amazon.com/verification",
-        date: "2023",
-      },
-    ],
-    salaryExpectation: { min: 140000, max: 185000, currency: "USD" },
-    profileCompleteness: 85,
-    streak: { current: 3, longest: 7, lastSolvedDate: "" },
-    xp: 220,
-  },
-];
+let memoryProfiles: any[] = [];
 
-// Seed other candidates into memory profiles
-SEED_CANDIDATES.forEach((cand, idx) => {
-  const fakeId = `66e00000000000000000001${idx + 4}`;
-  memoryUsers.push({
-    _id: fakeId,
-    email: cand.email,
-    passwordHash: "",
-    name: cand.name,
-    role: "seeker",
-    phone: "+1 (555) 123-4567",
-    avatarUrl: cand.avatarUrl,
-    isVerified: true,
-    createdAt: new Date(),
-  });
-  memoryProfiles.push({
-    userId: fakeId,
-    name: cand.name,
-    email: cand.email,
-    phone: "+1 (555) 123-4567",
-    location: cand.location,
-    pincode: "94016",
-    skills: cand.skills,
-    experience: [
-      {
-        company: "Tech Enterprise",
-        title: cand.role,
-        from: "2021",
-        to: "Present",
-        description: cand.bio,
-      },
-    ],
-    education: [{ school: "Top University", degree: "B.S. CS", year: "2019" }],
-    certificates: [],
-    salaryExpectation: { min: 130000, max: 180000, currency: "USD" },
-    profileCompleteness: cand.profileCompleteness,
-    streak: { current: cand.streak, longest: cand.streak + 4 },
-    xp: cand.streak * 30,
-  });
-});
-
-let memoryApplications: any[] = [
-  {
-    _id: "66e03c111111111111110001",
-    userId: "66e000000000000000000001",
-    jobId: memoryJobs[0]?._id || "66e01a111111111111110001",
-    resumeUrlUsed: "https://example.com/resumes/alex-morgan.pdf",
-    status: "reviewing",
-    appliedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2),
-  },
-  {
-    _id: "66e03c111111111111110002",
-    userId: "66e000000000000000000001",
-    jobId: memoryJobs[1]?._id || "66e01a111111111111110002",
-    resumeUrlUsed: "https://example.com/resumes/alex-morgan.pdf",
-    status: "shortlisted",
-    appliedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5),
-  },
-  {
-    _id: "66e03c111111111111110003",
-    userId: "66e000000000000000000014",
-    jobId: memoryJobs[2]?._id || "66e01a111111111111110003",
-    resumeUrlUsed: "https://example.com/resumes/priya-sharma.pdf",
-    status: "applied",
-    appliedAt: new Date(Date.now() - 1000 * 60 * 60 * 12),
-  },
-  {
-    _id: "66e03c111111111111110004",
-    userId: "66e000000000000000000015",
-    jobId: memoryJobs[0]?._id || "66e01a111111111111110001",
-    resumeUrlUsed: "https://example.com/resumes/marcus-chen.pdf",
-    status: "interviewing",
-    appliedAt: new Date(Date.now() - 1000 * 60 * 60 * 36),
-  },
-];
+let memoryApplications: any[] = [];
 let memoryAttempts: any[] = [];
 
 // JOB REPOSITORY
@@ -407,6 +288,23 @@ export const ProfileRepository = {
     return memoryProfiles.find((p) => String(p.userId) === userId) || null;
   },
 
+  async findByIdOrUserId(id: string) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        let profile = await SeekerProfile.findOne({
+          $or: [{ userId: id }, { _id: id }],
+        }).lean();
+        if (profile) return profile;
+      } catch {}
+    }
+    return (
+      memoryProfiles.find(
+        (p) => String(p.userId) === id || String(p._id) === id
+      ) || null
+    );
+  },
+
   async upsertByUserId(userId: string, data: any) {
     const conn = await connectToDatabase();
     if (conn) {
@@ -448,7 +346,7 @@ export const ProfileRepository = {
           query.location = { $regex: filters.location, $options: "i" };
         }
         const profiles = await SeekerProfile.find(query).populate("userId").lean();
-        if (profiles && profiles.length > 0) return profiles;
+        return profiles || [];
       } catch {}
     }
 
@@ -467,6 +365,35 @@ export const ProfileRepository = {
       );
     }
     return results;
+  },
+
+  async getLeaderboard(limit = 5) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const top = await SeekerProfile.find({ "streak.current": { $gt: 0 } })
+          .sort({ "streak.current": -1, xp: -1 })
+          .limit(limit)
+          .populate("userId")
+          .lean();
+        return top.map((p: any, idx: number) => ({
+          rank: idx + 1,
+          name: p.name || p.userId?.name || "Anonymous",
+          streak: p.streak?.current || 0,
+          xp: p.xp || 0,
+        }));
+      } catch {}
+    }
+    return memoryProfiles
+      .filter((p) => (p.streak?.current || 0) > 0)
+      .sort((a, b) => (b.streak?.current || 0) - (a.streak?.current || 0))
+      .slice(0, limit)
+      .map((p, idx) => ({
+        rank: idx + 1,
+        name: p.name || "Anonymous",
+        streak: p.streak?.current || 0,
+        xp: p.xp || 0,
+      }));
   },
 };
 

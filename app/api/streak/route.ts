@@ -5,38 +5,32 @@ import { ProfileRepository } from "@/lib/repositories";
 export async function GET(req: NextRequest) {
   try {
     const session = await getSessionUser();
-    let currentStreak = 3;
-    let longestStreak = 7;
-    let xp = 150;
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let xp = 0;
 
     if (session) {
       const profile = await ProfileRepository.findByUserId(session.userId);
       if (profile) {
-        currentStreak = profile.streak?.current ?? 3;
-        longestStreak = profile.streak?.longest ?? 7;
-        xp = profile.xp ?? 150;
+        currentStreak = profile.streak?.current ?? 0;
+        longestStreak = profile.streak?.longest ?? 0;
+        xp = profile.xp ?? 0;
       }
     }
 
-    // Generate mock 14-day activity heatmap data
+    // Generate real 14-day activity heatmap data
     const days = [];
     const today = new Date();
     for (let i = 13; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
       const str = d.toISOString().split("T")[0];
-      // Mark active if within current streak window
       const active = i < currentStreak;
       days.push({ date: str, active });
     }
 
-    const leaderboard = [
-      { rank: 1, name: "David Chen", streak: 22, xp: 660 },
-      { rank: 2, name: "Elena Rostova", streak: 18, xp: 540 },
-      { rank: 3, name: "Maya Lin", streak: 14, xp: 420 },
-      { rank: 4, name: "Priya Sharma", streak: 9, xp: 270 },
-      { rank: 5, name: session?.name || "You", streak: currentStreak, xp },
-    ];
+    // Fetch real leaderboard from database
+    const leaderboard = await ProfileRepository.getLeaderboard(5);
 
     return NextResponse.json({
       currentStreak,
@@ -49,4 +43,3 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Failed to fetch streak" }, { status: 500 });
   }
 }
-

@@ -22,9 +22,6 @@ Before deploying, ensure you have the following environment variables configured
 | `GROQ_API_KEY` | Optional | For AI resume extraction and job parsing | `gsk_...` |
 | `UPSTASH_REDIS_REST_URL` | Optional | For serverless rate limiting & caching | `https://...upstash.io` |
 | `UPSTASH_REDIS_REST_TOKEN`| Optional | Upstash Redis token | `...` |
-| `CLOUDINARY_CLOUD_NAME` | Optional | For candidate resume and image storage | `...` |
-| `CLOUDINARY_API_KEY` | Optional | Cloudinary API Key | `...` |
-| `CLOUDINARY_API_SECRET` | Optional | Cloudinary API Secret | `...` |
 
 > [!IMPORTANT]
 > **MongoDB Atlas Network Access**: In your MongoDB Atlas dashboard, ensure **Network Access** has IP `0.0.0.0/0` (Allow access from anywhere) enabled so Vercel serverless functions and Render web servers can reach your database.
@@ -72,9 +69,14 @@ Render can run the application as a persistent Node.js web service or Docker con
    - **Branch**: `version1` (or `main`)
    - **Build Command**: `npm install && npm run build`
    - **Start Command**: `npm run start`
-   - **Health Check Path**: `/api/auth/me`
+   - **Health Check Path**: `/api/health`
 4. Under **Environment Variables**, add the keys from the checklist above.
 5. Click **Create Web Service**.
+
+> [!TIP]
+> **Page Reloads & Health Checks**:
+> - **Health Check**: Always set the Health Check Path to `/api/health` (which returns HTTP 200 OK without requiring authentication cookies). Using an auth-protected route like `/api/auth/me` causes Render's health checks to return 401, triggering constant restarts and 502/503 errors when reloading the site.
+> - **Render Static Site Rewrites**: If you deployed as a Render **Static Site** rather than a Web Service, page reloads (e.g. at `/profile` or `/jobs`) require a rewrite rule so Render doesn't return 404 Not Found. The repository includes `public/_redirects` with `/*  /index.html  200`. In the Render Dashboard, you can also add under **Redirects/Rewrites**: Source: `/*`, Destination: `/index.html`, Action: `Rewrite`.
 
 ---
 

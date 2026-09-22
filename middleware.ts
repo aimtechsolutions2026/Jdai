@@ -31,7 +31,7 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  const seekerRoutes = ["/dashboard", "/applications", "/resume-center", "/profile"];
+  const seekerRoutes = ["/dashboard", "/applications", "/resume-center", "/profile", "/notifications"];
   const recruiterRoutes = ["/recruiter"];
   const adminRoutes = ["/admin"];
 
@@ -84,6 +84,8 @@ export const config = {
     "/resume-center/:path*",
     "/profile/:path*",
     "/profile",
+    "/notifications/:path*",
+    "/notifications",
     "/recruiter/:path*",
     "/admin/:path*",
     "/login",

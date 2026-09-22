@@ -15,15 +15,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { email, password, name, role, phone } = parsed.data;
+    let { email, password, name, role, phone } = parsed.data;
+    if (!name || !name.trim()) {
+      name = email.split("@")[0] || "User";
+    }
 
-    // Check if user already exists
+    // 1. Check if email already exists
     const existing = await UserRepository.findByEmail(email);
     if (existing) {
       return NextResponse.json(
-        { error: "An account with this email already exists" },
+        { error: "An account with this email already exists. Please sign in instead." },
         { status: 409 }
       );
+    }
+
+    // 2. Check if phone number already exists
+    if (phone && phone.trim()) {
+      const existingPhone = await UserRepository.findByPhone(phone);
+      if (existingPhone) {
+        return NextResponse.json(
+          { error: "An account with this phone number already exists. Please sign in instead." },
+          { status: 409 }
+        );
+      }
     }
 
     const passwordHash = await hashPassword(password);

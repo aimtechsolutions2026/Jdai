@@ -41,6 +41,7 @@ const UserSchema = new Schema<IUser>(
     phone: {
       type: String,
       trim: true,
+      index: true,
     },
     avatarUrl: {
       type: String,

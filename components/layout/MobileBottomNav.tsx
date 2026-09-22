@@ -19,7 +19,7 @@ import {
 export function MobileBottomNav() {
   const pathname = usePathname();
   const [userRole, setUserRole] = useState<"seeker" | "recruiter" | "admin" | null>(null);
-  const [streakCount, setStreakCount] = useState<number>(3);
+  const [streakCount, setStreakCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

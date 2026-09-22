@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Compass, Github, Twitter, Linkedin, Sparkles } from "lucide-react";
+import { Github, Twitter, Linkedin, Sparkles } from "lucide-react";
+import { CodifyProLogo } from "./CodifyProLogo";
 
 export function Footer() {
   return (
@@ -8,23 +9,8 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-10">
           {/* Brand Col */}
           <div className="md:col-span-2 space-y-4">
-            <Link href="/" className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white shadow-sm">
-                <Compass className="h-5 w-5" />
-              </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-lg font-bold tracking-tight text-secondary">
-                    CodifyPro
-                  </span>
-                  <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary border border-blue-200/60">
-                    AI
-                  </span>
-                </div>
-                <span className="text-[10px] font-medium text-text-secondary leading-none">
-                  by Aimtech Solutions
-                </span>
-              </div>
+            <Link href="/" className="group inline-block">
+              <CodifyProLogo withText size="md" />
             </Link>
             <p className="text-text-secondary max-w-sm text-sm leading-relaxed">
               The AI-first career acceleration platform. AI-powered resume parsing, daily DSA & aptitude practice, and rapid recruiter discovery.
@@ -125,9 +111,12 @@ export function Footer() {
             © {new Date().getFullYear()} CodifyPro (Aimtech Solutions Platform). All rights reserved.
           </p>
           <div className="flex items-center gap-6 text-xs text-text-secondary">
-            <span>Privacy Policy</span>
-            <span>Terms of Service</span>
-            <span>Security</span>
+            <Link href="/privacy" className="hover:text-primary transition-colors">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className="hover:text-primary transition-colors">
+              Terms of Service
+            </Link>
           </div>
         </div>
       </div>

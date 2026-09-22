@@ -13,6 +13,7 @@ import {
   Briefcase,
   GraduationCap,
   Sparkles,
+  Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,9 +22,13 @@ interface AtsResumeModalProps {
   isOpen: boolean;
   onClose: () => void;
   profile: {
+    id?: string;
+    userId?: string;
     name?: string;
     email?: string;
     phone?: string;
+    headline?: string;
+    summary?: string;
     location?: string;
     skills?: string[];
     experience?: {
@@ -45,6 +50,19 @@ interface AtsResumeModalProps {
       date?: string;
       url?: string;
     }[];
+    achievements?: string[];
+    projects?: {
+      name: string;
+      description: string;
+      techStack?: string;
+      url?: string;
+    }[];
+    socialLinks?: {
+      linkedin?: string;
+      github?: string;
+      portfolio?: string;
+    };
+    languages?: string[];
     salaryExpectation?: {
       min: number;
       max: number;
@@ -55,17 +73,35 @@ interface AtsResumeModalProps {
 
 export function AtsResumeModal({ isOpen, onClose, profile }: AtsResumeModalProps) {
   const [copied, setCopied] = useState(false);
+  const [copiedShare, setCopiedShare] = useState(false);
 
   if (!isOpen) return null;
 
-  const candidateName = profile.name || "Alex Morgan";
-  const candidateEmail = profile.email || "alex.morgan@example.com";
-  const candidatePhone = profile.phone || "+1 (555) 349-2041";
-  const candidateLocation = profile.location || "San Francisco, CA";
+  const candidateId = profile.id || profile.userId;
+
+  const handleShareLink = () => {
+    if (!candidateId && typeof window !== "undefined") return;
+    const shareUrl = `${window.location.origin}/resume/${candidateId}`;
+    navigator.clipboard.writeText(shareUrl);
+    setCopiedShare(true);
+    setTimeout(() => setCopiedShare(false), 2500);
+  };
+
+  const candidateName = profile.name || "Candidate";
+  const candidateEmail = profile.email || "";
+  const candidatePhone = profile.phone || "";
+  const candidateLocation = profile.location || "";
+  const candidateHeadline = profile.headline || "";
+  const candidateSummary =
+    profile.summary ||
+    "Results-driven engineer with expertise in building scalable, secure, and resilient applications.";
   const candidateSkills = profile.skills || [];
   const candidateExperience = profile.experience || [];
   const candidateEducation = profile.education || [];
   const candidateCertificates = profile.certificates || [];
+  const candidateProjects = profile.projects || [];
+  const candidateAchievements = profile.achievements || [];
+  const candidateSocialLinks = profile.socialLinks || {};
 
   const handlePrint = () => {
     window.print();
@@ -73,13 +109,13 @@ export function AtsResumeModal({ isOpen, onClose, profile }: AtsResumeModalProps
 
   const handleDownloadTxt = () => {
     const textContent = `================================================================================
-${candidateName.toUpperCase()}
+${candidateName.toUpperCase()}${candidateHeadline ? ` - ${candidateHeadline.toUpperCase()}` : ""}
 Email: ${candidateEmail} | Phone: ${candidatePhone} | Location: ${candidateLocation}
+${candidateSocialLinks.linkedin ? `LinkedIn: ${candidateSocialLinks.linkedin} | ` : ""}${candidateSocialLinks.github ? `GitHub: ${candidateSocialLinks.github} | ` : ""}${candidateSocialLinks.portfolio ? `Portfolio: ${candidateSocialLinks.portfolio}` : ""}
 ================================================================================
 
 PROFESSIONAL SUMMARY:
-Results-driven software engineer with extensive experience developing high-performance 
-distributed applications, scalable web architectures, and resilient cloud systems.
+${candidateSummary}
 
 --------------------------------------------------------------------------------
 CORE TECHNICAL SKILLS:
@@ -96,14 +132,22 @@ ${candidateExperience
   )
   .join("\n\n")}
 
+${candidateProjects.length > 0 ? `--------------------------------------------------------------------------------
+KEY PROJECTS:
 --------------------------------------------------------------------------------
+${candidateProjects
+  .map(
+    (p) =>
+      `${p.name.toUpperCase()}${p.url ? ` (${p.url})` : ""}${p.techStack ? `\nTech Stack: ${p.techStack}` : ""}\n${p.description}`
+  )
+  .join("\n\n")}\n\n` : ""}--------------------------------------------------------------------------------
 EDUCATION:
 --------------------------------------------------------------------------------
 ${candidateEducation
   .map((edu) => `${edu.degree} - ${edu.school} (${edu.year})`)
   .join("\n")}
 
---------------------------------------------------------------------------------
+${candidateCertificates.length > 0 ? `--------------------------------------------------------------------------------
 CERTIFICATIONS & CREDENTIALS:
 --------------------------------------------------------------------------------
 ${candidateCertificates
@@ -114,9 +158,10 @@ ${candidateCertificates
       (c.date ? ` | Issued: ${c.date}` : "") +
       (c.url ? ` | URL: ${c.url}` : "")
   )
-  .join("\n")}
-
-================================================================================
+  .join("\n")}\n\n` : ""}${candidateAchievements.length > 0 ? `--------------------------------------------------------------------------------
+ACHIEVEMENTS & HONORS:
+--------------------------------------------------------------------------------
+${candidateAchievements.map((a) => `- ${a}`).join("\n")}\n\n` : ""}================================================================================
 Generated via CodifyPro ATS Resume Engine by Aimtech Solutions
 ================================================================================`;
 
@@ -130,20 +175,20 @@ Generated via CodifyPro ATS Resume Engine by Aimtech Solutions
   };
 
   const handleCopy = () => {
-    const plainText = `${candidateName}\n${candidateEmail} | ${candidatePhone} | ${candidateLocation}\n\nTECHNICAL SKILLS:\n${candidateSkills.join(
+    const plainText = `${candidateName}${candidateHeadline ? ` (${candidateHeadline})` : ""}\n${candidateEmail} | ${candidatePhone} | ${candidateLocation}\n\nPROFESSIONAL SUMMARY:\n${candidateSummary}\n\nTECHNICAL SKILLS:\n${candidateSkills.join(
       ", "
     )}\n\nEXPERIENCE:\n${candidateExperience
       .map((e) => `${e.title} at ${e.company} (${e.from} - ${e.to})\n${e.description}`)
-      .join("\n\n")}\n\nEDUCATION:\n${candidateEducation
+      .join("\n\n")}${candidateProjects.length > 0 ? `\n\nPROJECTS:\n${candidateProjects.map((p) => `${p.name}: ${p.description}`).join("\n")}` : ""}\n\nEDUCATION:\n${candidateEducation
       .map((e) => `${e.degree}, ${e.school} (${e.year})`)
-      .join("\n")}\n\nCERTIFICATIONS:\n${candidateCertificates
+      .join("\n")}${candidateCertificates.length > 0 ? `\n\nCERTIFICATIONS:\n${candidateCertificates
       .map(
         (c) =>
           `${c.name} - ${c.issuer}${c.certificateId ? ` (ID: ${c.certificateId})` : ""}${
             c.date ? ` (${c.date})` : ""
           }`
       )
-      .join("\n")}`;
+      .join("\n")}` : ""}`;
 
     navigator.clipboard.writeText(plainText);
     setCopied(true);
@@ -172,7 +217,27 @@ Generated via CodifyPro ATS Resume Engine by Aimtech Solutions
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            {candidateId && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleShareLink}
+                className="gap-1.5 text-xs border-blue-200 text-primary hover:bg-blue-50 font-semibold"
+              >
+                {copiedShare ? (
+                  <>
+                    <Check className="h-3.5 w-3.5 text-emerald-600" />
+                    <span className="text-emerald-600">Copied Link!</span>
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="h-3.5 w-3.5" />
+                    <span>Share Public Link</span>
+                  </>
+                )}
+              </Button>
+            )}
             <Button
               onClick={handlePrint}
               size="sm"

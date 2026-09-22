@@ -36,10 +36,22 @@ export default function JobDetailPage() {
   const [applied, setApplied] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [showApplyModal, setShowApplyModal] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [copiedShare, setCopiedShare] = useState(false);
 
   // Tailored resume generation state (Phase 2 stub)
   const [tailoring, setTailoring] = useState(false);
   const [tailoredReady, setTailoredReady] = useState(false);
+
+  useEffect(() => {
+    // Check if viewer is authenticated
+    fetch("/api/auth/me")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.user) setCurrentUser(data.user);
+      })
+      .catch(() => setCurrentUser(null));
+  }, []);
 
   useEffect(() => {
     async function loadJob() {
@@ -68,7 +80,19 @@ export default function JobDetailPage() {
     if (jobId) loadJob();
   }, [jobId]);
 
+  const handleShareJob = () => {
+    if (typeof window !== "undefined") {
+      navigator.clipboard.writeText(window.location.href);
+      setCopiedShare(true);
+      setTimeout(() => setCopiedShare(false), 2500);
+    }
+  };
+
   const handleApply = async () => {
+    if (!currentUser) {
+      router.push(`/login?returnUrl=/jobs/${jobId}`);
+      return;
+    }
     setIsApplying(true);
     try {
       const res = await fetch("/api/applications", {
@@ -76,6 +100,10 @@ export default function JobDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jobId }),
       });
+      if (res.status === 401) {
+        router.push(`/login?returnUrl=/jobs/${jobId}`);
+        return;
+      }
       if (res.ok) {
         setApplied(true);
         setShowApplyModal(false);
@@ -88,6 +116,10 @@ export default function JobDetailPage() {
   };
 
   const handleGenerateTailoredResume = () => {
+    if (!currentUser) {
+      router.push(`/login?returnUrl=/jobs/${jobId}`);
+      return;
+    }
     setTailoring(true);
     setTimeout(() => {
       setTailoring(false);
@@ -135,7 +167,18 @@ export default function JobDetailPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="h-16 w-16 rounded-2xl bg-slate-100 border border-border flex items-center justify-center font-black text-2xl text-secondary overflow-hidden shrink-0">
-              {job.companyName?.[0] || "C"}
+              {job.companyLogoUrl ? (
+                <img
+                  src={job.companyLogoUrl}
+                  alt={job.companyName}
+                  className="h-full w-full object-contain p-1.5"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = "none";
+                  }}
+                />
+              ) : (
+                job.companyName?.[0] || "C"
+              )}
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-black text-secondary tracking-tight">
@@ -160,7 +203,34 @@ export default function JobDetailPage() {
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            {applied ? (
+            {/* Share Job link button */}
+            <button
+              onClick={handleShareJob}
+              className="h-11 px-3.5 rounded-xl border border-border bg-white text-text-secondary hover:text-primary hover:border-primary/40 transition-colors flex items-center gap-1.5 text-xs font-semibold shadow-subtle shrink-0"
+              title="Share this job opportunity"
+            >
+              {copiedShare ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4 text-success" />
+                  <span className="text-success font-bold">Link Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="h-4 w-4" />
+                  <span>Share</span>
+                </>
+              )}
+            </button>
+
+            {!currentUser ? (
+              <Button
+                size="lg"
+                className="w-full sm:w-auto font-bold gap-2 shadow-sm"
+                onClick={() => setShowApplyModal(true)}
+              >
+                <span>Sign In to Apply</span>
+              </Button>
+            ) : applied ? (
               <Button
                 variant="outline"
                 size="lg"
@@ -185,7 +255,7 @@ export default function JobDetailPage() {
             ) : (
               <Button
                 size="lg"
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto font-bold"
                 onClick={() => setShowApplyModal(true)}
               >
                 Easy Apply Now
@@ -331,40 +401,72 @@ export default function JobDetailPage() {
         </div>
       </div>
 
-      {/* Easy Apply Modal */}
+      {/* Easy Apply / Sign In Modal */}
       <Modal
         isOpen={showApplyModal}
         onClose={() => setShowApplyModal(false)}
-        title={`Apply to ${job.companyName}`}
-        description={`Position: ${job.role}`}
+        title={currentUser ? `Apply to ${job.companyName}` : "Sign In Required to Apply"}
+        description={currentUser ? `Position: ${job.role}` : `Position: ${job.role} at ${job.companyName}`}
       >
-        <div className="space-y-4">
-          <div className="rounded-xl border border-border p-4 bg-surface-alt space-y-2 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-text-secondary">Company:</span>
-              <span className="font-semibold text-text-primary">{job.companyName}</span>
+        {!currentUser ? (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4 space-y-2">
+              <div className="flex items-center gap-2 font-bold text-sm text-secondary">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                <span>Sign in to submit your application</span>
+              </div>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                You can review all job responsibilities, compensation, and qualifications without logging in. To submit your verified resume and apply to <strong>{job.companyName}</strong>, please sign in or create a free account.
+              </p>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-text-secondary">Location:</span>
-              <span className="font-semibold text-text-primary">{job.location}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-text-secondary">Resume:</span>
-              <span className="font-semibold text-text-primary">Profile Verified PDF</span>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button variant="ghost" size="sm" onClick={() => setShowApplyModal(false)}>
+                Continue Browsing
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                className="font-bold gap-1.5"
+                onClick={() => router.push(`/login?returnUrl=/jobs/${jobId}`)}
+              >
+                <span>Sign In to Apply</span>
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Button>
             </div>
           </div>
-          <p className="text-xs text-text-secondary">
-            Your application will be sent immediately to {job.companyName}&apos;s talent acquisition pipeline.
-          </p>
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <Button variant="ghost" size="sm" onClick={() => setShowApplyModal(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" size="md" isLoading={isApplying} onClick={handleApply}>
-              Confirm & Apply
-            </Button>
+        ) : (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-border p-4 bg-surface-alt space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-text-secondary">Company:</span>
+                <span className="font-semibold text-text-primary">{job.companyName}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-text-secondary">Location:</span>
+                <span className="font-semibold text-text-primary">{job.location}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-text-secondary">Applicant:</span>
+                <span className="font-semibold text-text-primary">{currentUser.name}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-text-secondary">Resume:</span>
+                <span className="font-semibold text-text-primary">Profile Verified ATS Resume</span>
+              </div>
+            </div>
+            <p className="text-xs text-text-secondary">
+              Your application will be sent immediately to {job.companyName}&apos;s talent acquisition pipeline.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button variant="ghost" size="sm" onClick={() => setShowApplyModal(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" size="md" isLoading={isApplying} onClick={handleApply}>
+                Confirm & Submit Application
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </Modal>
     </div>
   );

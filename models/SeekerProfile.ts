@@ -17,18 +17,38 @@ export interface IEducation {
 export interface ICertificate {
   name: string;
   issuer: string;
+  certificateId?: string;
   url?: string;
   date?: string;
+}
+
+export interface IProject {
+  name: string;
+  description: string;
+  techStack?: string;
+  url?: string;
+}
+
+export interface ISocialLinks {
+  linkedin?: string;
+  github?: string;
+  portfolio?: string;
 }
 
 export interface ISeekerProfile extends Document {
   userId: mongoose.Types.ObjectId;
   resumeUrl?: string;
   parsedResumeRaw?: any;
+  headline?: string;
+  summary?: string;
   experience: IExperience[];
   education: IEducation[];
   skills: string[];
   certificates: ICertificate[];
+  achievements: string[];
+  projects: IProject[];
+  socialLinks: ISocialLinks;
+  languages: string[];
   salaryExpectation: {
     min: number;
     max: number;
@@ -37,6 +57,7 @@ export interface ISeekerProfile extends Document {
   location?: string;
   pincode?: string;
   contact?: string;
+  phone?: string;
   profileCompleteness: number;
   streak: {
     current: number;
@@ -63,6 +84,14 @@ const SeekerProfileSchema = new Schema<ISeekerProfile>(
     parsedResumeRaw: {
       type: Schema.Types.Mixed,
     },
+    headline: {
+      type: String,
+      default: "",
+    },
+    summary: {
+      type: String,
+      default: "",
+    },
     experience: [
       {
         company: { type: String, default: "" },
@@ -88,14 +117,36 @@ const SeekerProfileSchema = new Schema<ISeekerProfile>(
       {
         name: { type: String, default: "" },
         issuer: { type: String, default: "" },
+        certificateId: { type: String, default: "" },
         url: { type: String, default: "" },
         date: { type: String, default: "" },
       },
     ],
+    achievements: {
+      type: [String],
+      default: [],
+    },
+    projects: [
+      {
+        name: { type: String, default: "" },
+        description: { type: String, default: "" },
+        techStack: { type: String, default: "" },
+        url: { type: String, default: "" },
+      },
+    ],
+    socialLinks: {
+      linkedin: { type: String, default: "" },
+      github: { type: String, default: "" },
+      portfolio: { type: String, default: "" },
+    },
+    languages: {
+      type: [String],
+      default: [],
+    },
     salaryExpectation: {
       min: { type: Number, default: 0 },
       max: { type: Number, default: 0 },
-      currency: { type: String, default: "USD" },
+      currency: { type: String, default: "INR" },
     },
     location: {
       type: String,
@@ -107,6 +158,10 @@ const SeekerProfileSchema = new Schema<ISeekerProfile>(
       default: "",
     },
     contact: {
+      type: String,
+      default: "",
+    },
+    phone: {
       type: String,
       default: "",
     },
@@ -130,4 +185,3 @@ const SeekerProfileSchema = new Schema<ISeekerProfile>(
 export const SeekerProfile: Model<ISeekerProfile> =
   mongoose.models.SeekerProfile ||
   mongoose.model<ISeekerProfile>("SeekerProfile", SeekerProfileSchema);
-

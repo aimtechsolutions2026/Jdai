@@ -79,10 +79,11 @@ export default function AdminDashboardPage() {
     id: "",
     role: "",
     companyName: "",
-    location: "San Francisco, CA (Hybrid)",
+    location: "Bengaluru, India (Hybrid)",
     jobType: "full-time",
-    salaryMin: 130000,
-    salaryMax: 180000,
+    currency: "INR",
+    salaryMin: 1200000,
+    salaryMax: 1800000,
     skills: "TypeScript, React, Node.js",
     description: "",
     status: "published",
@@ -252,10 +253,11 @@ export default function AdminDashboardPage() {
       id: "",
       role: "",
       companyName: "",
-      location: "San Francisco, CA (Hybrid)",
+      location: "Bengaluru, India (Hybrid)",
       jobType: "full-time",
-      salaryMin: 140000,
-      salaryMax: 190000,
+      currency: "INR",
+      salaryMin: 1200000,
+      salaryMax: 1800000,
       skills: "TypeScript, React, Next.js, Node.js",
       description: "We are seeking a high-caliber engineer to architect distributed, scalable cloud services...",
       status: "published",
@@ -271,10 +273,11 @@ export default function AdminDashboardPage() {
       companyName: job.companyName || "",
       location: job.location || "Remote",
       jobType: job.jobType || "full-time",
-      salaryMin: job.salaryRange?.min || 130000,
-      salaryMax: job.salaryRange?.max || 180000,
+      currency: job.salaryRange?.currency || "INR",
+      salaryMin: job.salaryRange?.min ?? 1200000,
+      salaryMax: job.salaryRange?.max ?? 1800000,
       skills: Array.isArray(job.skills) ? job.skills.join(", ") : job.skills || "",
-      description: job.description || "",
+      description: job.jd || job.description || "",
       status: job.status || "published",
     });
     setJobModalOpen(true);
@@ -297,9 +300,10 @@ export default function AdminDashboardPage() {
         salaryRange: {
           min: Number(jobForm.salaryMin),
           max: Number(jobForm.salaryMax),
-          currency: "USD",
+          currency: jobForm.currency || "INR",
         },
         skills: skillsArray,
+        jd: jobForm.description,
         description: jobForm.description,
         status: jobForm.status,
       };
@@ -1617,24 +1621,52 @@ export default function AdminDashboardPage() {
             </div>
             <div>
               <label className="block text-xs font-bold uppercase text-text-secondary mb-1">
-                Min Salary ($)
+                Currency
+              </label>
+              <select
+                value={jobForm.currency || "INR"}
+                onChange={(e) => setJobForm({ ...jobForm, currency: e.target.value })}
+                className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm text-text-primary font-semibold"
+              >
+                <option value="INR">INR (₹ - Indian Rupee / LPA)</option>
+                <option value="USD">USD ($ - US Dollar)</option>
+                <option value="EUR">EUR (€ - Euro)</option>
+                <option value="GBP">GBP (£ - British Pound)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase text-text-secondary mb-1">
+                Min Salary ({jobForm.currency === "INR" ? "₹" : "$"})
               </label>
               <Input
                 type="number"
                 value={jobForm.salaryMin}
                 onChange={(e) => setJobForm({ ...jobForm, salaryMin: Number(e.target.value) })}
+                placeholder={jobForm.currency === "INR" ? "1200000" : "120000"}
               />
             </div>
             <div>
               <label className="block text-xs font-bold uppercase text-text-secondary mb-1">
-                Max Salary ($)
+                Max Salary ({jobForm.currency === "INR" ? "₹" : "$"})
               </label>
               <Input
                 type="number"
                 value={jobForm.salaryMax}
                 onChange={(e) => setJobForm({ ...jobForm, salaryMax: Number(e.target.value) })}
+                placeholder={jobForm.currency === "INR" ? "1800000" : "180000"}
               />
             </div>
+          </div>
+
+          <div className="flex items-center justify-between bg-slate-50 border border-border rounded-xl px-3 py-2">
+            <span className="text-xs text-text-secondary">
+              {jobForm.currency === "INR"
+                ? "💡 1200000 = ₹12 LPA. System auto-converts to LPA."
+                : "💡 Annual compensation in US Dollars."}
+            </span>
+            <Badge variant="primary" size="sm" className="font-bold">
+              {formatSalaryRange({ min: jobForm.salaryMin, max: jobForm.salaryMax, currency: jobForm.currency })}
+            </Badge>
           </div>
 
           <div>

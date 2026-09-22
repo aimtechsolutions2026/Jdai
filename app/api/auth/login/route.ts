@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
     const { email, password } = parsed.data;
 
-    let user = await UserRepository.findByEmail(email);
+    let user = await UserRepository.findByEmailOrPhone(email);
 
     // Provide friendly fallback for built-in demo credentials
     if (!user) {
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: "Invalid email or password" },
+        { error: "Invalid email/phone or password" },
         { status: 401 }
       );
     }
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       const isValid = await verifyPassword(password, user.passwordHash);
       if (!isValid) {
         return NextResponse.json(
-          { error: "Invalid email or password" },
+          { error: "Invalid email/phone or password" },
           { status: 401 }
         );
       }

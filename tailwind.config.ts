@@ -53,7 +53,16 @@ const config: Config = {
         hover: "0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04)",
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "Inter", "system-ui", "-apple-system", "sans-serif"],
+        sans: [
+          "'Bricolage Grotesque'",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "'Segoe UI'",
+          "Roboto",
+          "Helvetica",
+          "Arial",
+          "sans-serif",
+        ],
       },
       animation: {
         "pulse-subtle": "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",

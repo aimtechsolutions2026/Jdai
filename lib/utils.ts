@@ -21,9 +21,34 @@ export function formatSalaryRange(
   salary?: { min?: number; max?: number; currency?: string } | null
 ): string {
   if (!salary || (!salary.min && !salary.max)) return "Competitive Salary";
-  const curr = salary.currency || "USD";
-  const sym = curr === "USD" ? "$" : curr === "INR" ? "₹" : curr === "EUR" ? "€" : `${curr} `;
-  
+  const curr = (salary.currency || "USD").toUpperCase();
+  const sym = curr === "USD" ? "$" : curr === "INR" ? "₹" : curr === "EUR" ? "€" : curr === "GBP" ? "£" : `${curr} `;
+
+  // Indian Rupee (INR) Formatting (support LPA - Lakhs Per Annum)
+  if (curr === "INR") {
+    if (salary.min && salary.max) {
+      if (salary.min >= 100000 || salary.max >= 100000) {
+        const minLpa = (salary.min / 100000).toFixed(salary.min % 100000 === 0 ? 0 : 1);
+        const maxLpa = (salary.max / 100000).toFixed(salary.max % 100000 === 0 ? 0 : 1);
+        return `₹${minLpa} - ₹${maxLpa} LPA`;
+      }
+      return `₹${salary.min.toLocaleString("en-IN")} - ₹${salary.max.toLocaleString("en-IN")}`;
+    }
+    if (salary.min) {
+      if (salary.min >= 100000) {
+        return `From ₹${(salary.min / 100000).toFixed(salary.min % 100000 === 0 ? 0 : 1)} LPA`;
+      }
+      return `From ₹${salary.min.toLocaleString("en-IN")}`;
+    }
+    if (salary.max) {
+      if (salary.max >= 100000) {
+        return `Up to ₹${(salary.max / 100000).toFixed(salary.max % 100000 === 0 ? 0 : 1)} LPA`;
+      }
+      return `Up to ₹${salary.max.toLocaleString("en-IN")}`;
+    }
+  }
+
+  // Standard USD and international formatting
   if (salary.min && salary.max) {
     if (salary.min >= 1000 && salary.max >= 1000) {
       return `${sym}${Math.round(salary.min / 1000)}k - ${sym}${Math.round(salary.max / 1000)}k`;

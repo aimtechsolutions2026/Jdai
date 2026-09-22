@@ -23,8 +23,8 @@ export async function GET(req: NextRequest) {
         name: session.name,
         role: session.role,
         avatarUrl: user?.avatarUrl || "",
-        streak: profile?.streak || { current: 3, longest: 7 },
-        xp: profile?.xp || 150,
+        streak: profile?.streak || { current: 0, longest: 0 },
+        xp: profile?.xp || 0,
       },
       profile,
     });

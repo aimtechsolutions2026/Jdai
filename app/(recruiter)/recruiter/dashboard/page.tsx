@@ -114,54 +114,6 @@ export default function RecruiterDashboardPage() {
         </div>
       </div>
 
-      {/* 3 Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-2xl border border-border bg-white p-5 shadow-card">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-text-secondary">
-              Active Candidates
-            </span>
-            <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center text-primary">
-              <Users className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="mt-3 text-3xl font-black text-secondary">1,420+</div>
-          <div className="mt-1 text-xs text-text-secondary">
-            Verified technical profiles
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-white p-5 shadow-card">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-text-secondary">
-              Recent Applications
-            </span>
-            <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center text-success">
-              <Briefcase className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="mt-3 text-3xl font-black text-secondary">38</div>
-          <div className="mt-1 text-xs text-text-secondary">
-            Incoming applicants this week
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-white p-5 shadow-card">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-text-secondary">
-              High-Streak Engineers
-            </span>
-            <div className="h-8 w-8 rounded-lg bg-amber-50 flex items-center justify-center text-accent">
-              <Flame className="h-4 w-4 fill-accent" />
-            </div>
-          </div>
-          <div className="mt-3 text-3xl font-black text-secondary">89%</div>
-          <div className="mt-1 text-xs text-text-secondary">
-            Solve daily DSA challenges
-          </div>
-        </div>
-      </div>
-
       {/* Top Candidate Spotlight */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -178,6 +130,16 @@ export default function RecruiterDashboardPage() {
             {[1, 2, 3].map((n) => (
               <div key={n} className="h-48 bg-slate-200 animate-pulse rounded-2xl" />
             ))}
+          </div>
+        ) : topCandidates.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border bg-white p-10 text-center space-y-3 shadow-card">
+            <Users className="h-8 w-8 text-slate-400 mx-auto" />
+            <h3 className="text-base font-bold text-secondary">
+              No candidates registered yet
+            </h3>
+            <p className="text-xs text-text-secondary max-w-sm mx-auto">
+              As developers create their profiles and upload resumes, they will appear in this spotlight directory.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -206,18 +168,18 @@ export default function RecruiterDashboardPage() {
                         </div>
                         <div className="text-xs text-text-secondary flex items-center gap-1">
                           <MapPin className="h-3 w-3" />
-                          {cand.location || "San Francisco, CA"}
+                          {cand.location || "Remote"}
                         </div>
                       </div>
                     </div>
                     <Badge variant="warning" size="sm" className="gap-0.5">
                       <Flame className="h-3 w-3 fill-accent" />
-                      <span>{cand.streak?.current || 12}d</span>
+                      <span>{cand.streak?.current || 0}d</span>
                     </Badge>
                   </div>
 
                   <div className="text-xs font-medium text-text-primary line-clamp-1">
-                    {cand.experience?.[0]?.title || "Senior Software Engineer"}
+                    {cand.experience?.[0]?.title || "Engineer"}
                   </div>
 
                   <div className="flex flex-wrap gap-1">

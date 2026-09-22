@@ -209,25 +209,26 @@ function CandidateSearchContent() {
                         </h3>
                         <div className="text-xs text-text-secondary flex items-center gap-1 mt-0.5">
                           <MapPin className="h-3 w-3" />
-                          <span>{cand.location || "San Francisco, CA"}</span>
+                          <span>{cand.location || "Remote"}</span>
                         </div>
                       </div>
                     </div>
 
                     <Badge variant="warning" size="sm" className="gap-1">
                       <Flame className="h-3.5 w-3.5 fill-accent text-accent" />
-                      <span>{cand.streak?.current || 3}d</span>
+                      <span>{cand.streak?.current || 0}d</span>
                     </Badge>
                   </div>
 
                   <div className="text-xs font-semibold text-secondary">
-                    {cand.experience?.[0]?.title || "Senior Software Engineer"}
+                    {cand.experience?.[0]?.title || "Engineer"}
                   </div>
 
-                  <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed">
-                    {cand.experience?.[0]?.description ||
-                      "Full-stack engineer with expertise in distributed architectures and modern frontend design."}
-                  </p>
+                  {cand.experience?.[0]?.description && (
+                    <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed">
+                      {cand.experience[0].description}
+                    </p>
+                  )}
 
                   <div className="flex flex-wrap gap-1 pt-1">
                     {cand.skills?.slice(0, 5).map((s: string) => (
@@ -240,7 +241,7 @@ function CandidateSearchContent() {
 
                 <div className="flex items-center justify-between pt-3 border-t border-border">
                   <span className="text-[11px] font-semibold text-primary">
-                    Profile: {cand.profileCompleteness || 85}% complete
+                    Profile: {cand.profileCompleteness || 0}% complete
                   </span>
                   <Button
                     variant="outline"
