@@ -91,6 +91,7 @@ export const JobExtractedSchema = z.object({
     })
     .default({ min: 0, max: 0, currency: "INR" }),
   location: z.string().default("Remote"),
+  city: z.string().optional().default(""),
   pincode: z.string().default(""),
   experienceRequired: z
     .object({

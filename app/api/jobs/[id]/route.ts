@@ -35,6 +35,16 @@ export async function PUT(
     }
 
     const body = await req.json();
+    if (body.city !== undefined) {
+      let normalizedCity = body.city ? String(body.city).trim() : "";
+      if (normalizedCity) {
+        normalizedCity = normalizedCity
+          .split(" ")
+          .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : ""))
+          .join(" ");
+      }
+      body.city = normalizedCity;
+    }
     const updated = await JobRepository.update(params.id, body);
     return NextResponse.json({ success: true, job: updated });
   } catch (error) {

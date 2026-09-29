@@ -14,6 +14,79 @@ export async function GET(req: NextRequest) {
   }
 }
 
+interface NormalizedMCQ {
+  category: "dsa" | "aptitude" | "general";
+  difficulty: "easy" | "medium" | "hard";
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+}
+
+function normalizeQuestion(item: any): NormalizedMCQ | null {
+  if (!item || typeof item !== "object") return null;
+  const question = typeof item.question === "string" ? item.question.trim() : "";
+  if (!question) return null;
+
+  let options: string[] = [];
+  if (Array.isArray(item.options)) {
+    options = item.options.map((opt: any) => String(opt).trim()).filter(Boolean);
+  } else if (item.options && typeof item.options === "object") {
+    options = Object.values(item.options).map((opt: any) => String(opt).trim()).filter(Boolean);
+  }
+
+  if (options.length < 2) return null;
+
+  let correctIndex = 0;
+  if (typeof item.correctIndex === "number") {
+    correctIndex = Math.max(0, Math.min(options.length - 1, item.correctIndex));
+  } else if (typeof item.correctIndex === "string") {
+    const trimmed = item.correctIndex.trim().toUpperCase();
+    if (/^[A-Z]$/.test(trimmed)) {
+      correctIndex = trimmed.charCodeAt(0) - 65;
+    } else {
+      const parsed = parseInt(trimmed, 10);
+      correctIndex = isNaN(parsed) ? 0 : parsed;
+    }
+  } else if (typeof item.correctAnswer === "string") {
+    const trimmed = item.correctAnswer.trim();
+    const foundIdx = options.findIndex((o) => o.toLowerCase() === trimmed.toLowerCase());
+    if (foundIdx !== -1) {
+      correctIndex = foundIdx;
+    } else if (/^[A-Za-z]$/.test(trimmed)) {
+      correctIndex = trimmed.toUpperCase().charCodeAt(0) - 65;
+    }
+  }
+  correctIndex = Math.max(0, Math.min(options.length - 1, correctIndex));
+
+  let category: "dsa" | "aptitude" | "general" = "dsa";
+  if (item.category) {
+    const cat = String(item.category).toLowerCase().trim();
+    if (cat.includes("apt")) category = "aptitude";
+    else if (cat.includes("gen") || cat.includes("system") || cat.includes("web")) category = "general";
+    else category = "dsa";
+  }
+
+  let difficulty: "easy" | "medium" | "hard" = "medium";
+  if (item.difficulty) {
+    const diff = String(item.difficulty).toLowerCase().trim();
+    if (diff === "easy" || diff === "medium" || diff === "hard") {
+      difficulty = diff;
+    }
+  }
+
+  const explanation = typeof item.explanation === "string" ? item.explanation.trim() : "";
+
+  return {
+    category,
+    difficulty,
+    question,
+    options,
+    correctIndex,
+    explanation,
+  };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getSessionUser();
@@ -22,28 +95,44 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { category, question, options, correctIndex, difficulty, explanation } = body;
 
-    if (!question || !options || options.length < 2 || correctIndex === undefined) {
+    const rawList = Array.isArray(body)
+      ? body
+      : Array.isArray(body.questions)
+      ? body.questions
+      : [body];
+
+    const normalizedList: NormalizedMCQ[] = [];
+    for (const item of rawList) {
+      const q = normalizeQuestion(item);
+      if (q) normalizedList.push(q);
+    }
+
+    if (normalizedList.length === 0) {
       return NextResponse.json(
-        { error: "Please provide question, at least 2 options, and correct index" },
+        {
+          error:
+            "Invalid format. Each question requires a question statement, at least 2 options, and a correct answer index.",
+        },
         { status: 400 }
       );
     }
 
-    const newQ = await McqRepository.create({
-      category: category || "dsa",
-      question,
-      options,
-      correctIndex: Number(correctIndex),
-      difficulty: difficulty || "medium",
-      explanation: explanation || "",
-    });
+    if (normalizedList.length === 1 && !Array.isArray(body) && !Array.isArray(body.questions)) {
+      const newQ = await McqRepository.create(normalizedList[0]);
+      return NextResponse.json({ success: true, question: newQ });
+    }
 
-    return NextResponse.json({ success: true, question: newQ });
+    const created = await McqRepository.createMany(normalizedList);
+    return NextResponse.json({
+      success: true,
+      count: created.length,
+      questions: created,
+      message: `Successfully imported ${created.length} challenge question${created.length === 1 ? "" : "s"}!`,
+    });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to create question" },
+      { error: "Failed to create question(s)" },
       { status: 500 }
     );
   }

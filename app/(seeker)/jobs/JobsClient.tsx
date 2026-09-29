@@ -14,6 +14,10 @@ import {
   ExternalLink,
   DollarSign,
   GraduationCap,
+  Share2,
+  Check,
+  Lock,
+  LogIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,11 +36,35 @@ export default function JobsClient() {
   const [savedJobs, setSavedJobs] = useState<string[]>([]);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
+  // Authenticated user and dynamic city search state
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [copiedJobId, setCopiedJobId] = useState<string | null>(null);
+  const [cities, setCities] = useState<string[]>([]);
+  const [citySearch, setCitySearch] = useState("");
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalJobId, setAuthModalJobId] = useState<string | null>(null);
+
   // Easy Apply modal state
   const [applyingJob, setApplyingJob] = useState<any | null>(null);
   const [applyLoading, setApplyLoading] = useState(false);
   const [appliedJobs, setAppliedJobs] = useState<string[]>([]);
   const [applySuccess, setApplySuccess] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.user) setCurrentUser(d.user);
+      })
+      .catch(() => setCurrentUser(null));
+
+    fetch("/api/jobs/cities")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (Array.isArray(d?.cities)) setCities(d.cities);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetchJobs();
@@ -102,6 +130,26 @@ export default function JobsClient() {
     } finally {
       setApplyLoading(false);
     }
+  };
+
+  const handleShareJob = (jobId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (typeof window !== "undefined") {
+      const url = `${window.location.origin}/jobs/${jobId}`;
+      navigator.clipboard.writeText(url);
+      setCopiedJobId(jobId);
+      setTimeout(() => setCopiedJobId(null), 2500);
+    }
+  };
+
+  const handleStartApply = (job: any) => {
+    if (!currentUser) {
+      setAuthModalJobId(job._id);
+      setShowAuthModal(true);
+      return;
+    }
+    setApplyingJob(job);
   };
 
   const resetFilters = () => {

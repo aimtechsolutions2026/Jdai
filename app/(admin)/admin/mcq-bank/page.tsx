@@ -13,6 +13,11 @@ import {
   BookOpen,
   ArrowLeft,
   AlertCircle,
+  FileCode,
+  Upload,
+  Copy,
+  Check,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +42,56 @@ export default function AdminMcqBankPage() {
   const [correctIndex, setCorrectIndex] = useState<number>(0);
   const [explanation, setExplanation] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // JSON Import state
+  const [modalTab, setModalTab] = useState<"form" | "json">("form");
+  const [jsonText, setJsonText] = useState("");
+  const [jsonError, setJsonError] = useState<string | null>(null);
+  const [jsonParsedCount, setJsonParsedCount] = useState<number | null>(null);
+
+  const sampleSingleJson = JSON.stringify(
+    {
+      category: "dsa",
+      difficulty: "medium",
+      question: "What is the worst-case space complexity of QuickSort?",
+      options: ["O(1)", "O(log n)", "O(n)", "O(n^2)"],
+      correctIndex: 2,
+      explanation: "With unbalanced partitioning (e.g. naive pivot on already sorted array), recursion call stack depth reaches O(n).",
+    },
+    null,
+    2
+  );
+
+  const sampleBulkJson = JSON.stringify(
+    [
+      {
+        category: "dsa",
+        difficulty: "medium",
+        question: "What is the worst-case space complexity of QuickSort?",
+        options: ["O(1)", "O(log n)", "O(n)", "O(n^2)"],
+        correctIndex: 2,
+        explanation: "With unbalanced partitioning, call stack depth reaches O(n).",
+      },
+      {
+        category: "aptitude",
+        difficulty: "easy",
+        question: "A train running at 72 km/h crosses a 200m pole in how many seconds?",
+        options: ["8 sec", "10 sec", "12 sec", "15 sec"],
+        correctIndex: 1,
+        explanation: "Speed = 72 * (5/18) = 20 m/s. Time = Distance / Speed = 200 / 20 = 10 seconds.",
+      },
+      {
+        category: "general",
+        difficulty: "hard",
+        question: "Which HTTP status code is most appropriate for a request that violates idempotency constraints?",
+        options: ["400 Bad Request", "409 Conflict", "422 Unprocessable Entity", "405 Method Not Allowed"],
+        correctIndex: 1,
+        explanation: "409 Conflict indicates the request could not be completed due to a conflict with current target state.",
+      },
+    ],
+    null,
+    2
+  );
 
   // Delete modal
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -69,6 +124,7 @@ export default function AdminMcqBankPage() {
 
   const openCreateModal = () => {
     setModalMode("create");
+    setModalTab("form");
     setCurrentId("");
     setCategory("dsa");
     setDifficulty("medium");
@@ -76,7 +132,98 @@ export default function AdminMcqBankPage() {
     setOptions(["", "", "", ""]);
     setCorrectIndex(0);
     setExplanation("");
+    setJsonError(null);
     setShowModal(true);
+  };
+
+  const openJsonModal = () => {
+    setModalMode("create");
+    setModalTab("json");
+    if (!jsonText) {
+      setJsonText(sampleSingleJson);
+      setJsonParsedCount(1);
+    }
+    setJsonError(null);
+    setShowModal(true);
+  };
+
+  const handleJsonChange = (text: string) => {
+    setJsonText(text);
+    if (!text.trim()) {
+      setJsonError(null);
+      setJsonParsedCount(null);
+      return;
+    }
+    try {
+      const parsed = JSON.parse(text);
+      setJsonError(null);
+      if (Array.isArray(parsed)) {
+        setJsonParsedCount(parsed.length);
+      } else if (Array.isArray(parsed.questions)) {
+        setJsonParsedCount(parsed.questions.length);
+      } else if (typeof parsed === "object" && parsed !== null) {
+        setJsonParsedCount(1);
+      } else {
+        setJsonError("JSON must be a question object or an array of question objects");
+        setJsonParsedCount(null);
+      }
+    } catch (err: any) {
+      setJsonError(err.message || "Invalid JSON syntax");
+      setJsonParsedCount(null);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const content = evt.target?.result as string;
+      if (content) {
+        handleJsonChange(content);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleSaveJson = async () => {
+    if (!jsonText.trim()) {
+      setJsonError("Please enter or paste JSON content.");
+      return;
+    }
+    let parsed: any;
+    try {
+      parsed = JSON.parse(jsonText);
+    } catch (err: any) {
+      setJsonError(err.message || "Invalid JSON syntax");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch("/api/mcq/bank", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsed),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to import questions");
+
+      showFeedback(
+        "success",
+        data.message || `Successfully imported ${data.count || 1} challenge question(s)!`
+      );
+      setShowModal(false);
+      setJsonText("");
+      setJsonParsedCount(null);
+      setJsonError(null);
+      await fetchBank();
+    } catch (err: any) {
+      showFeedback("error", err.message || "Import failed");
+      setJsonError(err.message || "Import failed");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const openEditModal = (q: any) => {
@@ -191,10 +338,16 @@ export default function AdminMcqBankPage() {
             Manage daily engineering challenges covering Data Structures, Algorithms, and Aptitude.
           </p>
         </div>
-        <Button onClick={openCreateModal} size="sm" className="gap-2">
-          <Plus className="h-4 w-4" />
-          <span>Add Challenge Question</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={openJsonModal} variant="outline" size="sm" className="gap-2">
+            <FileCode className="h-4 w-4 text-primary" />
+            <span>Import via JSON</span>
+          </Button>
+          <Button onClick={openCreateModal} size="sm" className="gap-2">
+            <Plus className="h-4 w-4" />
+            <span>Add Challenge Question</span>
+          </Button>
+        </div>
       </div>
 
       {feedback && (
@@ -333,113 +486,277 @@ export default function AdminMcqBankPage() {
       <Modal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        title={modalMode === "create" ? "Add Daily MCQ Challenge" : "Edit MCQ Challenge"}
-        description="Configure question rotation and verified explanation."
+        title={
+          modalMode === "create"
+            ? modalTab === "json"
+              ? "Add Daily MCQ via JSON"
+              : "Add Daily MCQ Challenge"
+            : "Edit MCQ Challenge"
+        }
+        description={
+          modalTab === "json"
+            ? "Paste a single question JSON object or an array [...] of questions to import in bulk."
+            : "Configure question rotation and verified explanation."
+        }
         maxWidth="lg"
       >
-        <form onSubmit={handleSaveQuestion} className="space-y-4 pt-2">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold uppercase text-text-secondary mb-1">
-                Category
-              </label>
-              <select
-                value={category}
-                onChange={(e: any) => setCategory(e.target.value)}
-                className="w-full rounded-xl border border-border p-2.5 text-xs bg-white"
-              >
-                <option value="dsa">DSA (Algorithms / Data Structures)</option>
-                <option value="aptitude">Aptitude & Math</option>
-                <option value="general">System Design / General</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase text-text-secondary mb-1">
-                Difficulty
-              </label>
-              <select
-                value={difficulty}
-                onChange={(e: any) => setDifficulty(e.target.value)}
-                className="w-full rounded-xl border border-border p-2.5 text-xs bg-white"
-              >
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard">Hard</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase text-text-secondary mb-1">
-              Question Statement <span className="text-error">*</span>
-            </label>
-            <textarea
-              required
-              rows={2}
-              value={questionText}
-              onChange={(e) => setQuestionText(e.target.value)}
-              className="w-full rounded-xl border border-border p-2.5 text-xs focus:ring-1 focus:ring-primary"
-              placeholder="What is the worst-case space complexity of QuickSort?"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-xs font-bold uppercase text-text-secondary">
-              Options (Select Radio for Correct Answer)
-            </label>
-            {options.map((opt, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="correctOpt"
-                  checked={correctIndex === i}
-                  onChange={() => setCorrectIndex(i)}
-                  className="h-4 w-4 text-primary shrink-0"
-                />
-                <span className="text-xs font-bold text-text-secondary w-5">
-                  {String.fromCharCode(65 + i)}:
-                </span>
-                <Input
-                  required={i < 2}
-                  value={opt}
-                  onChange={(e) => {
-                    const newOpts = [...options];
-                    newOpts[i] = e.target.value;
-                    setOptions(newOpts);
-                  }}
-                  placeholder={`Option ${String.fromCharCode(65 + i)}`}
-                />
-              </div>
-            ))}
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase text-text-secondary mb-1">
-              Solution Explanation (Optional)
-            </label>
-            <textarea
-              rows={2}
-              value={explanation}
-              onChange={(e) => setExplanation(e.target.value)}
-              className="w-full rounded-xl border border-border p-2.5 text-xs focus:ring-1 focus:ring-primary"
-              placeholder="Explain why this answer is correct..."
-            />
-          </div>
-
-          <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
-            <Button
+        {modalMode === "create" && (
+          <div className="flex items-center p-1 bg-slate-100 rounded-xl mb-4 border border-border">
+            <button
               type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setShowModal(false)}
+              onClick={() => setModalTab("form")}
+              className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                modalTab === "form"
+                  ? "bg-white text-secondary shadow-sm"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
             >
-              Cancel
-            </Button>
-            <Button type="submit" size="sm" isLoading={saving}>
-              {modalMode === "create" ? "Add to Bank" : "Save Changes"}
-            </Button>
+              <span>Standard Form</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setModalTab("json");
+                if (!jsonText) {
+                  setJsonText(sampleSingleJson);
+                  setJsonParsedCount(1);
+                }
+              }}
+              className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                modalTab === "json"
+                  ? "bg-white text-secondary shadow-sm"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              <FileCode className="h-3.5 w-3.5 text-primary" />
+              <span>JSON Import</span>
+              {jsonParsedCount !== null && (
+                <Badge variant="primary" size="sm" className="ml-1 text-[10px] py-0 px-1.5 font-bold">
+                  {jsonParsedCount}
+                </Badge>
+              )}
+            </button>
           </div>
-        </form>
+        )}
+
+        {modalTab === "form" ? (
+          <form onSubmit={handleSaveQuestion} className="space-y-4 pt-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold uppercase text-text-secondary mb-1">
+                  Category
+                </label>
+                <select
+                  value={category}
+                  onChange={(e: any) => setCategory(e.target.value)}
+                  className="w-full rounded-xl border border-border p-2.5 text-xs bg-white"
+                >
+                  <option value="dsa">DSA (Algorithms / Data Structures)</option>
+                  <option value="aptitude">Aptitude & Math</option>
+                  <option value="general">System Design / General</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase text-text-secondary mb-1">
+                  Difficulty
+                </label>
+                <select
+                  value={difficulty}
+                  onChange={(e: any) => setDifficulty(e.target.value)}
+                  className="w-full rounded-xl border border-border p-2.5 text-xs bg-white"
+                >
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase text-text-secondary mb-1">
+                Question Statement <span className="text-error">*</span>
+              </label>
+              <textarea
+                required
+                rows={2}
+                value={questionText}
+                onChange={(e) => setQuestionText(e.target.value)}
+                className="w-full rounded-xl border border-border p-2.5 text-xs focus:ring-1 focus:ring-primary"
+                placeholder="What is the worst-case space complexity of QuickSort?"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase text-text-secondary">
+                Options (Select Radio for Correct Answer)
+              </label>
+              {options.map((opt, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="correctOpt"
+                    checked={correctIndex === i}
+                    onChange={() => setCorrectIndex(i)}
+                    className="h-4 w-4 text-primary shrink-0"
+                  />
+                  <span className="text-xs font-bold text-text-secondary w-5">
+                    {String.fromCharCode(65 + i)}:
+                  </span>
+                  <Input
+                    required={i < 2}
+                    value={opt}
+                    onChange={(e) => {
+                      const newOpts = [...options];
+                      newOpts[i] = e.target.value;
+                      setOptions(newOpts);
+                    }}
+                    placeholder={`Option ${String.fromCharCode(65 + i)}`}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase text-text-secondary mb-1">
+                Solution Explanation (Optional)
+              </label>
+              <textarea
+                rows={2}
+                value={explanation}
+                onChange={(e) => setExplanation(e.target.value)}
+                className="w-full rounded-xl border border-border p-2.5 text-xs focus:ring-1 focus:ring-primary"
+                placeholder="Explain why this answer is correct..."
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" size="sm" isLoading={saving}>
+                {modalMode === "create" ? "Add to Bank" : "Save Changes"}
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <div className="space-y-3 pt-1">
+            {/* Quick Templates & File Upload */}
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-bold text-text-secondary uppercase">Template:</span>
+                <button
+                  type="button"
+                  onClick={() => handleJsonChange(sampleSingleJson)}
+                  className="px-2.5 py-1 rounded-lg border border-border bg-surface-alt hover:bg-slate-100 text-text-primary text-[11px] font-medium transition-colors"
+                >
+                  Single Question
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleJsonChange(sampleBulkJson)}
+                  className="px-2.5 py-1 rounded-lg border border-border bg-surface-alt hover:bg-slate-100 text-text-primary text-[11px] font-medium transition-colors"
+                >
+                  Bulk (3 Questions)
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="cursor-pointer px-2.5 py-1 rounded-lg border border-border bg-white hover:bg-slate-50 text-text-primary text-[11px] font-medium transition-colors flex items-center gap-1.5 shadow-subtle">
+                  <Upload className="h-3 w-3 text-primary" />
+                  <span>Upload .json</span>
+                  <input
+                    type="file"
+                    accept=".json,application/json"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                </label>
+                {jsonText && (
+                  <button
+                    type="button"
+                    onClick={() => handleJsonChange("")}
+                    className="text-[11px] text-text-secondary hover:text-error transition-colors font-medium"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Code / Textarea Editor */}
+            <div className="relative">
+              <textarea
+                rows={10}
+                value={jsonText}
+                onChange={(e) => handleJsonChange(e.target.value)}
+                placeholder={`Paste question JSON here, e.g.:\n{\n  "category": "dsa",\n  "difficulty": "medium",\n  "question": "What is the worst-case space complexity of QuickSort?",\n  "options": ["O(1)", "O(log n)", "O(n)", "O(n^2)"],\n  "correctIndex": 2,\n  "explanation": "With unbalanced partitioning, recursion stack takes O(n)."\n}`}
+                className="w-full rounded-xl border border-slate-700 bg-slate-900 p-3.5 font-mono text-xs text-emerald-400 focus:border-primary focus:ring-1 focus:ring-primary leading-relaxed shadow-inner"
+                spellCheck={false}
+              />
+            </div>
+
+            {/* Live Syntax & Validation Feedback */}
+            {jsonError ? (
+              <div className="flex items-start gap-2 p-2.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-xs">
+                <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 mt-0.5" />
+                <div className="space-y-0.5">
+                  <div className="font-bold">JSON Syntax or Format Error:</div>
+                  <div className="text-[11px] font-mono">{jsonError}</div>
+                </div>
+              </div>
+            ) : jsonParsedCount !== null && jsonParsedCount > 0 ? (
+              <div className="flex items-center gap-2 p-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                <span className="font-medium">
+                  Valid JSON format. Ready to add <strong>{jsonParsedCount}</strong> challenge question{jsonParsedCount === 1 ? "" : "s"} to database.
+                </span>
+              </div>
+            ) : null}
+
+            {/* Field hints summary */}
+            <div className="rounded-xl border border-slate-200/80 bg-slate-50 p-2.5 text-[11px] text-text-secondary space-y-1">
+              <div className="font-bold text-text-primary">Schema Guide:</div>
+              <div>• <code>question</code>: Question text string (required)</div>
+              <div>• <code>options</code>: Array of strings with at least 2 options (required)</div>
+              <div>• <code>correctIndex</code>: <code>0..3</code> or <code>&quot;A&quot;</code>, <code>&quot;B&quot;</code>, <code>&quot;C&quot;</code>, <code>&quot;D&quot;</code> (required)</div>
+              <div>• <code>category</code>: <code>&quot;dsa&quot;</code>, <code>&quot;aptitude&quot;</code>, or <code>&quot;general&quot;</code> (optional, defaults to dsa)</div>
+              <div>• <code>difficulty</code>: <code>&quot;easy&quot;</code>, <code>&quot;medium&quot;</code>, or <code>&quot;hard&quot;</code> (optional, defaults to medium)</div>
+              <div>• <code>explanation</code>: Explanation string (optional)</div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                isLoading={saving}
+                disabled={Boolean(jsonError) || !jsonText.trim()}
+                onClick={handleSaveJson}
+                className="gap-1.5"
+              >
+                <Plus className="h-4 w-4" />
+                <span>
+                  {jsonParsedCount && jsonParsedCount > 1
+                    ? `Import ${jsonParsedCount} Questions`
+                    : "Add to Bank"}
+                </span>
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* Delete Confirmation Modal */}

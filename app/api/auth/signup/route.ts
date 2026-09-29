@@ -2,9 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { RegisterSchema } from "@/lib/zod-schemas";
 import { UserRepository, ProfileRepository } from "@/lib/repositories";
 import { hashPassword, createToken, AUTH_COOKIE_NAME } from "@/lib/auth";
+import { connectToDatabase } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   try {
+    const conn = await connectToDatabase();
+    if (!conn) {
+      return NextResponse.json(
+        {
+          error: "Database Service Unavailable",
+          message:
+            "Unable to connect to the database. Please ensure your MongoDB Atlas cluster is online and your current IP address is whitelisted in MongoDB Atlas Network Access.",
+        },
+        { status: 503 }
+      );
+    }
+
     const body = await req.json();
     const parsed = RegisterSchema.safeParse(body);
 
@@ -97,6 +110,16 @@ export async function POST(req: NextRequest) {
     return response;
   } catch (error: any) {
     console.error("Signup error:", error);
+    if (error?.message === "DATABASE_UNAVAILABLE") {
+      return NextResponse.json(
+        {
+          error: "Database Service Unavailable",
+          message:
+            "Unable to connect to the database. Please ensure your MongoDB Atlas cluster is online and your current IP address is whitelisted in MongoDB Atlas Network Access.",
+        },
+        { status: 503 }
+      );
+    }
     return NextResponse.json(
       { error: "Failed to create account" },
       { status: 500 }

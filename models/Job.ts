@@ -13,6 +13,7 @@ export interface IJob extends Document {
     currency: string;
   };
   location: string;
+  city?: string;
   pincode?: string;
   experienceRequired: {
     min: number;
@@ -63,6 +64,12 @@ const JobSchema = new Schema<IJob>(
     location: {
       type: String,
       default: "Remote",
+      index: true,
+    },
+    city: {
+      type: String,
+      default: "",
+      trim: true,
       index: true,
     },
     pincode: {
@@ -134,6 +141,7 @@ JobSchema.index(
 JobSchema.index({ status: 1, postedAt: -1 });
 JobSchema.index({ status: 1, jobType: 1, postedAt: -1 });
 JobSchema.index({ status: 1, location: 1, postedAt: -1 });
+JobSchema.index({ status: 1, city: 1, postedAt: -1 });
 JobSchema.index({ status: 1, jobType: 1, location: 1, postedAt: -1 });
 
 export const Job: Model<IJob> =

@@ -13,41 +13,7 @@ import { SEED_JOBS, SEED_MCQS, SEED_CANDIDATES } from "./seed-data";
 let memoryJobs: any[] = [];
 let memoryMCQs: any[] = [];
 let memoryNotifications: any[] = [];
-let memoryUsers: any[] = [
-  {
-    _id: "66e000000000000000000001",
-    email: "seeker@codifypro.ai",
-    passwordHash: "$2a$10$wJjK...mockhash",
-    name: "Candidate Seeker",
-    role: "seeker",
-    phone: "",
-    avatarUrl: "",
-    isVerified: true,
-    createdAt: new Date(),
-  },
-  {
-    _id: "66e000000000000000000002",
-    email: "recruiter@codifypro.ai",
-    passwordHash: "$2a$10$wJjK...mockhash",
-    name: "Sarah Jenkins (Recruiter)",
-    role: "recruiter",
-    phone: "+1 (555) 890-1234",
-    avatarUrl: "",
-    isVerified: true,
-    createdAt: new Date(),
-  },
-  {
-    _id: "66e000000000000000000003",
-    email: "admin@codifypro.ai",
-    passwordHash: "$2a$10$wJjK...mockhash",
-    name: "System Admin",
-    role: "admin",
-    phone: "+1 (555) 000-1111",
-    avatarUrl: "",
-    isVerified: true,
-    createdAt: new Date(),
-  },
-];
+let memoryUsers: any[] = [];
 
 let memoryProfiles: any[] = [];
 
@@ -61,6 +27,7 @@ export const JobRepository = {
     search?: string;
     role?: string;
     location?: string;
+    city?: string;
     jobType?: string;
     experienceMin?: number;
     salaryMin?: number;
@@ -76,8 +43,13 @@ export const JobRepository = {
         if (filters.jobType && filters.jobType !== "all") {
           query.jobType = filters.jobType;
         }
-        if (filters.location && filters.location !== "all") {
-          query.location = { $regex: filters.location, $options: "i" };
+        if (filters.city && filters.city !== "all") {
+          query.city = { $regex: new RegExp(`^${filters.city.trim()}$`, "i") };
+        } else if (filters.location && filters.location !== "all") {
+          query.$or = [
+            { location: { $regex: filters.location, $options: "i" } },
+            { city: { $regex: filters.location, $options: "i" } },
+          ];
         }
         if (filters.search) {
           query.$text = { $search: filters.search };
@@ -106,9 +78,16 @@ export const JobRepository = {
     if (filters.jobType && filters.jobType !== "all") {
       result = result.filter((j) => j.jobType === filters.jobType);
     }
-    if (filters.location && filters.location !== "all") {
-      result = result.filter((j) =>
-        j.location.toLowerCase().includes(filters.location!.toLowerCase())
+    if (filters.city && filters.city !== "all") {
+      result = result.filter(
+        (j) =>
+          j.city && j.city.toLowerCase() === filters.city!.toLowerCase()
+      );
+    } else if (filters.location && filters.location !== "all") {
+      result = result.filter(
+        (j) =>
+          (j.location && j.location.toLowerCase().includes(filters.location!.toLowerCase())) ||
+          (j.city && j.city.toLowerCase().includes(filters.location!.toLowerCase()))
       );
     }
     if (filters.salaryMin && filters.salaryMin > 0) {
@@ -190,21 +169,63 @@ export const JobRepository = {
     memoryJobs = memoryJobs.filter((j) => String(j._id) !== id);
     return true;
   },
+
+  async getDistinctCities(): Promise<string[]> {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const dbCities = await Job.distinct("city", {
+          status: "published",
+          city: { $exists: true, $ne: "" },
+        });
+        if (Array.isArray(dbCities) && dbCities.length > 0) {
+          const unique = Array.from(
+            new Set(
+              dbCities
+                .map((c) => (typeof c === "string" ? c.trim() : ""))
+                .filter(Boolean)
+            )
+          ).sort((a, b) => a.localeCompare(b));
+          if (unique.length > 0) return unique;
+        }
+      } catch (e) {
+        console.warn("Failed to get distinct cities from DB:", e);
+      }
+    }
+
+    const fallbackCities = Array.from(
+      new Set(
+        memoryJobs
+          .map((j) => (j.city ? String(j.city).trim() : ""))
+          .filter(Boolean)
+      )
+    ).sort((a, b) => a.localeCompare(b));
+
+    return fallbackCities.length > 0
+      ? fallbackCities
+      : [
+          "San Francisco",
+          "New York",
+          "Austin",
+          "Seattle",
+          "Bengaluru",
+          "London",
+          "Toronto",
+          "Remote",
+        ];
+  },
 };
 
 // USER & PROFILE REPOSITORY
 export const UserRepository = {
   async findByEmail(email: string) {
+    if (!email) return null;
     const conn = await connectToDatabase();
-    if (conn) {
-      try {
-        const user = await User.findOne({ email: email.toLowerCase() }).lean();
-        if (user) return user;
-      } catch {}
+    if (!conn) {
+      throw new Error("DATABASE_UNAVAILABLE");
     }
-    return (
-      memoryUsers.find((u) => u.email.toLowerCase() === email.toLowerCase()) || null
-    );
+    const user = await User.findOne({ email: email.toLowerCase() }).lean();
+    return user;
   },
 
   async findByPhone(phone: string) {
@@ -212,24 +233,16 @@ export const UserRepository = {
     const clean = phone.trim();
     const digits = clean.replace(/[^0-9]/g, "");
     const conn = await connectToDatabase();
-    if (conn) {
-      try {
-        const user = await User.findOne({
-          $or: [
-            { phone: clean },
-            ...(digits.length >= 8 ? [{ phone: { $regex: digits } }] : []),
-          ],
-        }).lean();
-        if (user) return user;
-      } catch {}
+    if (!conn) {
+      throw new Error("DATABASE_UNAVAILABLE");
     }
-    return (
-      memoryUsers.find((u) => {
-        if (!u.phone) return false;
-        const uDigits = u.phone.replace(/[^0-9]/g, "");
-        return u.phone === clean || (digits.length >= 8 && uDigits.includes(digits));
-      }) || null
-    );
+    const user = await User.findOne({
+      $or: [
+        { phone: clean },
+        ...(digits.length >= 8 ? [{ phone: { $regex: digits } }] : []),
+      ],
+    }).lean();
+    return user;
   },
 
   async findByEmailOrPhone(identifier: string) {
@@ -245,72 +258,46 @@ export const UserRepository = {
 
   async findById(id: string) {
     const conn = await connectToDatabase();
-    if (conn) {
-      try {
-        const user = await User.findById(id).lean();
-        if (user) return user;
-      } catch {}
+    if (!conn) {
+      throw new Error("DATABASE_UNAVAILABLE");
     }
-    return memoryUsers.find((u) => String(u._id) === id) || null;
+    const user = await User.findById(id).lean();
+    return user;
   },
 
   async create(userData: any) {
     const conn = await connectToDatabase();
-    if (conn) {
-      try {
-        const user = await User.create(userData);
-        return user.toObject();
-      } catch {}
+    if (!conn) {
+      throw new Error("DATABASE_UNAVAILABLE");
     }
-    const newUser = {
-      ...userData,
-      _id: `66e00000000000000000000${Date.now().toString().slice(-4)}`,
-      createdAt: new Date(),
-    };
-    memoryUsers.push(newUser);
-    return newUser;
+    const user = await User.create(userData);
+    return user.toObject();
   },
 
   async updateUser(id: string, updateData: any) {
     const conn = await connectToDatabase();
-    if (conn) {
-      try {
-        const user = await User.findByIdAndUpdate(
-          id,
-          { ...updateData },
-          { new: true }
-        ).lean();
-        if (user) return user;
-      } catch {}
+    if (!conn) {
+      throw new Error("DATABASE_UNAVAILABLE");
     }
-    const idx = memoryUsers.findIndex((u) => String(u._id) === id);
-    if (idx !== -1) {
-      memoryUsers[idx] = { ...memoryUsers[idx], ...updateData, updatedAt: new Date() };
-      return memoryUsers[idx];
-    }
-    return null;
+    const user = await User.findByIdAndUpdate(
+      id,
+      { ...updateData },
+      { new: true }
+    ).lean();
+    return user;
   },
 
   async findByResetToken(token: string) {
     if (!token) return null;
     const conn = await connectToDatabase();
-    if (conn) {
-      try {
-        const user = await User.findOne({
-          resetPasswordToken: token,
-          resetPasswordExpires: { $gt: new Date() },
-        }).lean();
-        if (user) return user;
-      } catch {}
+    if (!conn) {
+      throw new Error("DATABASE_UNAVAILABLE");
     }
-    return (
-      memoryUsers.find(
-        (u: any) =>
-          u.resetPasswordToken === token &&
-          u.resetPasswordExpires &&
-          new Date(u.resetPasswordExpires) > new Date()
-      ) || null
-    );
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: new Date() },
+    }).lean();
+    return user;
   },
 
   async findAll() {
@@ -319,41 +306,29 @@ export const UserRepository = {
 
   async getAllUsers() {
     const conn = await connectToDatabase();
-    if (conn) {
-      try {
-        const users = await User.find().lean();
-        if (users && users.length > 0) return users;
-      } catch {}
+    if (!conn) {
+      throw new Error("DATABASE_UNAVAILABLE");
     }
-    return memoryUsers;
+    const users = await User.find().lean();
+    return users || [];
   },
 
   async update(id: string, updates: any) {
     const conn = await connectToDatabase();
-    if (conn) {
-      try {
-        const user = await User.findByIdAndUpdate(id, updates, { new: true }).lean();
-        if (user) return user;
-      } catch {}
+    if (!conn) {
+      throw new Error("DATABASE_UNAVAILABLE");
     }
-    const idx = memoryUsers.findIndex((u) => String(u._id) === id);
-    if (idx !== -1) {
-      memoryUsers[idx] = { ...memoryUsers[idx], ...updates };
-      return memoryUsers[idx];
-    }
-    return null;
+    const user = await User.findByIdAndUpdate(id, updates, { new: true }).lean();
+    return user;
   },
 
   async delete(id: string) {
     const conn = await connectToDatabase();
-    if (conn) {
-      try {
-        await User.findByIdAndDelete(id);
-        await SeekerProfile.deleteOne({ userId: id });
-      } catch {}
+    if (!conn) {
+      throw new Error("DATABASE_UNAVAILABLE");
     }
-    memoryUsers = memoryUsers.filter((u) => String(u._id) !== id);
-    memoryProfiles = memoryProfiles.filter((p) => String(p.userId) !== id);
+    await User.findByIdAndDelete(id);
+    await SeekerProfile.deleteOne({ userId: id });
     return true;
   },
 };
@@ -527,6 +502,28 @@ export const McqRepository = {
     };
     memoryMCQs.push(newQ);
     return newQ;
+  },
+
+  async createMany(items: any[]) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const created = await MCQQuestion.insertMany(items);
+        return created.map((q) => q.toObject());
+      } catch (err) {
+        console.error("MCQQuestion.insertMany error:", err);
+      }
+    }
+    const created: any[] = [];
+    for (const item of items) {
+      const newQ = {
+        ...item,
+        _id: `66e02b1111111111111111${Date.now().toString().slice(-4)}${Math.random().toString().slice(-2)}`,
+      };
+      memoryMCQs.push(newQ);
+      created.push(newQ);
+    }
+    return created;
   },
 
   async update(id: string, updates: any) {

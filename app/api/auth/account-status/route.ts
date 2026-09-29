@@ -20,6 +20,10 @@ export async function PUT(req: NextRequest) {
     }
 
     const updated = await UserRepository.updateUser(session.userId, { isActive });
+    if (!updated) {
+      return NextResponse.json({ error: "User not found." }, { status: 404 });
+    }
+
     return NextResponse.json({
       success: true,
       isActive: updated.isActive,
@@ -47,6 +51,10 @@ export async function POST(req: NextRequest) {
         deletionRequestedAt: new Date(),
         deletionReason: reason?.trim() || "User requested account deletion via dashboard.",
       });
+
+      if (!updated) {
+        return NextResponse.json({ error: "User not found." }, { status: 404 });
+      }
 
       return NextResponse.json({
         success: true,

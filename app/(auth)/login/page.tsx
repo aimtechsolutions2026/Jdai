@@ -40,6 +40,7 @@ function LoginForm() {
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "Failed to sign in");
+        throw new Error(data.message || data.error || "Failed to sign in");
       }
 
       if (data.user.role === "admin") {
@@ -183,9 +184,28 @@ function LoginForm() {
             /* STANDARD LOGIN FORM */
             <>
               {error && (
-                <div className="mb-5 flex items-center gap-2 rounded-xl bg-rose-50 p-3 text-sm text-error border border-rose-200">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span>{error}</span>
+                <div
+                  className={`mb-5 flex items-start gap-2.5 rounded-xl p-3.5 text-xs border ${
+                    error.toLowerCase().includes("database") || error.toLowerCase().includes("unavailable")
+                      ? "bg-amber-50 text-amber-900 border-amber-300 shadow-sm"
+                      : "bg-rose-50 text-error border-rose-200"
+                  }`}
+                >
+                  <AlertCircle
+                    className={`h-4 w-4 shrink-0 mt-0.5 ${
+                      error.toLowerCase().includes("database") || error.toLowerCase().includes("unavailable")
+                        ? "text-amber-600"
+                        : "text-error"
+                    }`}
+                  />
+                  <div>
+                    <div className="font-bold">
+                      {error.toLowerCase().includes("database") || error.toLowerCase().includes("unavailable")
+                        ? "Database Service Unavailable"
+                        : "Sign In Error"}
+                    </div>
+                    <div className="mt-0.5 leading-relaxed">{error}</div>
+                  </div>
                 </div>
               )}
 

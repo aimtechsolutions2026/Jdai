@@ -96,7 +96,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { id, name, email, phone, role, isVerified, location, skills } = body;
+    const { id, name, email, phone, role, isVerified, location, skills, password } = body;
 
     if (!id) {
       return NextResponse.json({ error: "User id is required" }, { status: 400 });
@@ -108,6 +108,9 @@ export async function PUT(req: NextRequest) {
     if (phone !== undefined) updates.phone = phone;
     if (role) updates.role = role;
     if (isVerified !== undefined) updates.isVerified = isVerified;
+    if (password && typeof password === "string" && password.trim().length >= 6) {
+      updates.passwordHash = await hashPassword(password.trim());
+    }
 
     const updatedUser = await UserRepository.update(id, updates);
     if (!updatedUser) {

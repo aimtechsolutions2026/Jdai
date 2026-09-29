@@ -58,6 +58,9 @@ export async function PUT(req: NextRequest) {
     }
 
     const updatedUser = await UserRepository.updateUser(session.userId, updates);
+    if (!updatedUser) {
+      return NextResponse.json({ error: "User not found." }, { status: 404 });
+    }
 
     // Also sync candidate profile if seeker
     if (session.role === "seeker") {
