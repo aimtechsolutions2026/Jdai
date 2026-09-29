@@ -21,6 +21,7 @@ interface NormalizedMCQ {
   options: string[];
   correctIndex: number;
   explanation: string;
+  scheduledDate?: string;
 }
 
 function normalizeQuestion(item: any): NormalizedMCQ | null {
@@ -76,6 +77,10 @@ function normalizeQuestion(item: any): NormalizedMCQ | null {
   }
 
   const explanation = typeof item.explanation === "string" ? item.explanation.trim() : "";
+  const scheduledDate =
+    typeof item.scheduledDate === "string" && item.scheduledDate.trim()
+      ? item.scheduledDate.trim()
+      : undefined;
 
   return {
     category,
@@ -84,12 +89,13 @@ function normalizeQuestion(item: any): NormalizedMCQ | null {
     options,
     correctIndex,
     explanation,
+    ...(scheduledDate ? { scheduledDate } : {}),
   };
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSessionUser();
+    const session = await getSessionUser(req);
     if (!session || session.role !== "admin") {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
@@ -140,13 +146,13 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const session = await getSessionUser();
+    const session = await getSessionUser(req);
     if (!session || session.role !== "admin") {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
     const body = await req.json();
-    const { id, category, question, options, correctIndex, difficulty, explanation } = body;
+    const { id, category, question, options, correctIndex, difficulty, explanation, scheduledDate } = body;
 
     if (!id) {
       return NextResponse.json({ error: "Question id is required" }, { status: 400 });
@@ -159,6 +165,7 @@ export async function PUT(req: NextRequest) {
     if (correctIndex !== undefined) updates.correctIndex = Number(correctIndex);
     if (difficulty) updates.difficulty = difficulty;
     if (explanation !== undefined) updates.explanation = explanation;
+    if (scheduledDate !== undefined) updates.scheduledDate = scheduledDate;
 
     const updated = await McqRepository.update(id, updates);
     if (!updated) {
@@ -176,7 +183,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await getSessionUser();
+    const session = await getSessionUser(req);
     if (!session || session.role !== "admin") {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }

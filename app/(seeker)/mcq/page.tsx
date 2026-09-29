@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Flame,
   Zap,
@@ -13,6 +14,8 @@ import {
   ArrowRight,
   HelpCircle,
   AlertCircle,
+  Lock,
+  LogIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +23,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 export default function DailyMcqPage() {
   const [question, setQuestion] = useState<any>(null);
+  const [upcomingQuestions, setUpcomingQuestions] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -34,14 +39,22 @@ export default function DailyMcqPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [qRes, sRes] = await Promise.all([
+      const [qRes, sRes, meRes] = await Promise.all([
         fetch("/api/mcq/today"),
         fetch("/api/streak"),
+        fetch("/api/auth/me"),
       ]);
+
+      if (meRes.ok) {
+        const meData = await meRes.json();
+        if (meData?.user) setCurrentUser(meData.user);
+      }
 
       if (qRes.ok) {
         const qData = await qRes.json();
         setQuestion(qData.question);
+        setUpcomingQuestions(qData.upcomingQuestions || []);
+        if (qData.currentUser) setCurrentUser(qData.currentUser);
         if (qData.question?.hasAttempted) {
           setResult(qData.question.previousAttempt || { isCorrect: true });
         }
@@ -262,16 +275,29 @@ export default function DailyMcqPage() {
               </div>
 
               {/* Action Submit */}
-              {!result ? (
+              {!currentUser ? (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl border border-blue-200 bg-blue-50/70">
+                  <div className="flex items-center gap-2.5 text-xs text-secondary font-medium">
+                    <Lock className="h-4 w-4 text-primary shrink-0" />
+                    <span>Sign in to submit your answer, earn XP, and build your daily coding streak.</span>
+                  </div>
+                  <Link href={`/login?returnUrl=/mcq`}>
+                    <Button size="md" className="font-bold gap-2 shrink-0 shadow-sm">
+                      <LogIn className="h-4 w-4" />
+                      <span>Sign In to Answer</span>
+                    </Button>
+                  </Link>
+                </div>
+              ) : !result ? (
                 <div className="flex items-center justify-end pt-3">
                   <Button
                     size="lg"
                     disabled={selectedOption === null}
                     isLoading={submitting}
                     onClick={handleSubmitAnswer}
-                    className="w-full sm:w-auto px-8"
+                    className="w-full sm:w-auto px-8 font-bold"
                   >
-                    Submit Answer
+                    Submit Answer (1 Attempt)
                   </Button>
                 </div>
               ) : (
@@ -297,6 +323,9 @@ export default function DailyMcqPage() {
                       <p className="text-xs mt-1 leading-relaxed opacity-90">
                         {result.explanation || question.explanation}
                       </p>
+                      <div className="mt-2 text-[11px] font-semibold text-text-muted">
+                        🔒 Answer submitted and locked for today. Next challenge arrives tomorrow!
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -391,6 +420,84 @@ export default function DailyMcqPage() {
           </Card>
         </div>
       </div>
+      )}
+
+      {/* Upcoming Daily Questions Schedule */}
+      {upcomingQuestions.length > 0 && (
+        <div className="space-y-4 pt-6 border-t border-border">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-primary" />
+                <h3 className="text-lg font-black text-secondary tracking-tight">
+                  Upcoming Daily Challenges
+                </h3>
+              </div>
+              <p className="text-xs text-text-secondary">
+                Preview upcoming DSA & system design problems scheduled for the next days. Identical challenges for all learners.
+              </p>
+            </div>
+            <Badge variant="outline" size="sm" className="w-fit inline-flex gap-1 text-[11px] font-semibold text-text-secondary">
+              <Sparkles className="h-3 w-3 text-accent" />
+              <span>1 Daily Question Uploaded by Admin</span>
+            </Badge>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {upcomingQuestions.map((uq, idx) => (
+              <div
+                key={uq._id || idx}
+                className="p-4 rounded-2xl border border-border bg-white shadow-card flex flex-col justify-between gap-3 relative overflow-hidden group hover:border-primary/40 transition-colors"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-primary">
+                      {uq.dayOffset === 1
+                        ? "Tomorrow"
+                        : uq.dayOffset === 2
+                        ? "In 2 Days"
+                        : `Day +${uq.dayOffset}`}
+                    </span>
+                    <span className="text-[11px] text-text-muted font-mono">
+                      {uq.date}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 pt-0.5">
+                    <Badge variant="primary" size="sm" className="uppercase font-bold text-[10px]">
+                      {uq.category || "DSA"}
+                    </Badge>
+                    <Badge
+                      variant={
+                        uq.difficulty === "easy"
+                          ? "success"
+                          : uq.difficulty === "hard"
+                          ? "error"
+                          : "warning"
+                      }
+                      size="sm"
+                      className="capitalize font-semibold text-[10px]"
+                    >
+                      {uq.difficulty || "Medium"}
+                    </Badge>
+                  </div>
+
+                  <p className="text-xs font-semibold text-text-primary line-clamp-3 leading-snug pt-1">
+                    {uq.question}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-border flex items-center justify-between text-[11px] text-text-muted">
+                  <span className="flex items-center gap-1 font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                    <Lock className="h-3 w-3" />
+                    <span>Unlocks on {uq.date}</span>
+                  </span>
+                  <span className="font-mono text-[10px]">4 Options</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
