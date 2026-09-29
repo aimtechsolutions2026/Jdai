@@ -18,6 +18,7 @@ import {
   Copy,
   Check,
   FileText,
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,7 @@ export default function AdminMcqBankPage() {
   const [options, setOptions] = useState<string[]>(["", "", "", ""]);
   const [correctIndex, setCorrectIndex] = useState<number>(0);
   const [explanation, setExplanation] = useState("");
+  const [scheduledDate, setScheduledDate] = useState("");
   const [saving, setSaving] = useState(false);
 
   // JSON Import state
@@ -132,6 +134,7 @@ export default function AdminMcqBankPage() {
     setOptions(["", "", "", ""]);
     setCorrectIndex(0);
     setExplanation("");
+    setScheduledDate("");
     setJsonError(null);
     setShowModal(true);
   };
@@ -239,6 +242,7 @@ export default function AdminMcqBankPage() {
     );
     setCorrectIndex(q.correctIndex || 0);
     setExplanation(q.explanation || "");
+    setScheduledDate(q.scheduledDate || "");
     setShowModal(true);
   };
 
@@ -258,6 +262,7 @@ export default function AdminMcqBankPage() {
         options: validOptions,
         correctIndex: Number(correctIndex),
         explanation,
+        scheduledDate: scheduledDate.trim() || undefined,
       };
 
       if (modalMode === "create") {
@@ -416,6 +421,12 @@ export default function AdminMcqBankPage() {
                     >
                       {q.difficulty}
                     </Badge>
+                    {q.scheduledDate && (
+                      <Badge variant="outline" size="sm" className="font-semibold text-primary border-primary/30 flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>Scheduled: {q.scheduledDate}</span>
+                      </Badge>
+                    )}
                   </div>
                   <h3 className="text-base font-bold text-text-primary pt-1">
                     {q.question}
@@ -541,7 +552,7 @@ export default function AdminMcqBankPage() {
 
         {modalTab === "form" ? (
           <form onSubmit={handleSaveQuestion} className="space-y-4 pt-1">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs font-bold uppercase text-text-secondary mb-1">
                   Category
@@ -551,7 +562,7 @@ export default function AdminMcqBankPage() {
                   onChange={(e: any) => setCategory(e.target.value)}
                   className="w-full rounded-xl border border-border p-2.5 text-xs bg-white"
                 >
-                  <option value="dsa">DSA (Algorithms / Data Structures)</option>
+                  <option value="dsa">DSA</option>
                   <option value="aptitude">Aptitude & Math</option>
                   <option value="general">System Design / General</option>
                 </select>
@@ -569,6 +580,18 @@ export default function AdminMcqBankPage() {
                   <option value="medium">Medium</option>
                   <option value="hard">Hard</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase text-text-secondary mb-1 flex items-center justify-between">
+                  <span>Schedule Date</span>
+                  <span className="text-[10px] font-normal text-slate-400">Optional</span>
+                </label>
+                <Input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                  className="w-full text-xs"
+                />
               </div>
             </div>
 
@@ -726,6 +749,7 @@ export default function AdminMcqBankPage() {
               <div>• <code>correctIndex</code>: <code>0..3</code> or <code>&quot;A&quot;</code>, <code>&quot;B&quot;</code>, <code>&quot;C&quot;</code>, <code>&quot;D&quot;</code> (required)</div>
               <div>• <code>category</code>: <code>&quot;dsa&quot;</code>, <code>&quot;aptitude&quot;</code>, or <code>&quot;general&quot;</code> (optional, defaults to dsa)</div>
               <div>• <code>difficulty</code>: <code>&quot;easy&quot;</code>, <code>&quot;medium&quot;</code>, or <code>&quot;hard&quot;</code> (optional, defaults to medium)</div>
+              <div>• <code>scheduledDate</code>: <code>&quot;YYYY-MM-DD&quot;</code> (optional, schedules challenge for a specific date)</div>
               <div>• <code>explanation</code>: Explanation string (optional)</div>
             </div>
 

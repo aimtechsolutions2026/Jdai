@@ -32,7 +32,7 @@ export const JobRepository = {
     experienceMin?: number;
     salaryMin?: number;
     status?: string;
-  }) {
+  } = {}): Promise<any[]> {
     const conn = await connectToDatabase();
     if (conn) {
       try {
@@ -60,6 +60,7 @@ export const JobRepository = {
         if (filters.experienceMin !== undefined && filters.experienceMin > 0) {
           query["experienceRequired.min"] = { $gte: filters.experienceMin };
         }
+
         const jobs = await Job.find(query).sort({ postedAt: -1 }).lean();
         return jobs;
       } catch (e) {
@@ -111,7 +112,131 @@ export const JobRepository = {
           j.skills?.some((s: string) => s.toLowerCase().includes(q))
       );
     }
+
     return result;
+  },
+
+  async findManyPaginated(filters: {
+    search?: string;
+    role?: string;
+    location?: string;
+    city?: string;
+    jobType?: string;
+    experienceMin?: number;
+    salaryMin?: number;
+    status?: string;
+    page?: number;
+    limit?: number;
+  } = {}): Promise<{
+    jobs: any[];
+    totalCount: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasMore: boolean;
+  }> {
+    const limit = Math.max(1, filters.limit || 10);
+    const page = Math.max(1, filters.page || 1);
+    const skip = (page - 1) * limit;
+
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const query: any = {};
+        if (filters.status) query.status = filters.status;
+        else query.status = "published";
+
+        if (filters.jobType && filters.jobType !== "all") {
+          query.jobType = filters.jobType;
+        }
+        if (filters.city && filters.city !== "all") {
+          query.city = { $regex: new RegExp(`^${filters.city.trim()}$`, "i") };
+        } else if (filters.location && filters.location !== "all") {
+          query.$or = [
+            { location: { $regex: filters.location, $options: "i" } },
+            { city: { $regex: filters.location, $options: "i" } },
+          ];
+        }
+        if (filters.search) {
+          query.$text = { $search: filters.search };
+        }
+        if (filters.salaryMin && filters.salaryMin > 0) {
+          query["salaryRange.max"] = { $gte: filters.salaryMin };
+        }
+        if (filters.experienceMin !== undefined && filters.experienceMin > 0) {
+          query["experienceRequired.min"] = { $gte: filters.experienceMin };
+        }
+
+        const totalCount = await Job.countDocuments(query);
+        const jobs = await Job.find(query).sort({ postedAt: -1 }).skip(skip).limit(limit).lean();
+        return {
+          jobs,
+          totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit) || 1,
+          hasMore: page * limit < totalCount,
+        };
+      } catch (e) {
+        console.warn("DB find error, fallback to memory:", e);
+      }
+    }
+
+    // Memory fallback
+    let result = [...memoryJobs];
+    if (filters.status) {
+      result = result.filter((j) => j.status === filters.status);
+    } else {
+      result = result.filter((j) => j.status === "published");
+    }
+
+    if (filters.jobType && filters.jobType !== "all") {
+      result = result.filter((j) => j.jobType === filters.jobType);
+    }
+    if (filters.city && filters.city !== "all") {
+      result = result.filter(
+        (j) =>
+          j.city && j.city.toLowerCase() === filters.city!.toLowerCase()
+      );
+    } else if (filters.location && filters.location !== "all") {
+      result = result.filter(
+        (j) =>
+          (j.location && j.location.toLowerCase().includes(filters.location!.toLowerCase())) ||
+          (j.city && j.city.toLowerCase().includes(filters.location!.toLowerCase()))
+      );
+    }
+    if (filters.salaryMin && filters.salaryMin > 0) {
+      result = result.filter(
+        (j) =>
+          (j.salaryRange?.max || 0) >= filters.salaryMin! ||
+          (j.salaryRange?.min || 0) >= filters.salaryMin!
+      );
+    }
+    if (filters.experienceMin !== undefined && filters.experienceMin > 0) {
+      result = result.filter(
+        (j) => (j.experienceRequired?.min || 0) >= filters.experienceMin!
+      );
+    }
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      result = result.filter(
+        (j) =>
+          j.role.toLowerCase().includes(q) ||
+          j.companyName.toLowerCase().includes(q) ||
+          j.skills?.some((s: string) => s.toLowerCase().includes(q))
+      );
+    }
+
+    const totalCount = result.length;
+    const paginated = result.slice(skip, skip + limit);
+    return {
+      jobs: paginated,
+      totalCount,
+      page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit) || 1,
+      hasMore: page * limit < totalCount,
+    };
   },
 
   async findById(id: string) {
@@ -470,11 +595,55 @@ export const McqRepository = {
   async getTodayQuestion() {
     const all = await this.getAll();
     if (!all || all.length === 0) return null;
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    // 1. Specifically scheduled for today by admin
+    const scheduled = all.find((q: any) => q.scheduledDate === todayStr);
+    if (scheduled) return scheduled;
+
+    // 2. Deterministic day of year index for identical challenge to all users
     const dayOfYear = Math.floor(
       (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24
     );
     const index = dayOfYear % all.length;
     return all[index] || all[0] || null;
+  },
+
+  async getUpcomingQuestions(daysCount: number = 4) {
+    const all = await this.getAll();
+    if (!all || all.length === 0) return [];
+
+    const dayOfYear = Math.floor(
+      (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24
+    );
+
+    const upcoming: any[] = [];
+    for (let offset = 1; offset <= daysCount; offset++) {
+      const targetDate = new Date();
+      targetDate.setDate(targetDate.getDate() + offset);
+      const targetStr = targetDate.toISOString().split("T")[0];
+
+      let q = all.find((item: any) => item.scheduledDate === targetStr);
+      if (!q) {
+        const index = (dayOfYear + offset) % all.length;
+        q = all[index];
+      }
+
+      if (q) {
+        upcoming.push({
+          _id: String(q._id),
+          date: targetStr,
+          dayOffset: offset,
+          category: q.category,
+          difficulty: q.difficulty,
+          question: q.question,
+          options: q.options,
+          isLocked: true,
+        });
+      }
+    }
+
+    return upcoming;
   },
 
   async findById(id: string) {

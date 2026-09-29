@@ -8,6 +8,7 @@ export interface IMCQQuestion extends Document {
   correctIndex: number;
   difficulty: "easy" | "medium" | "hard";
   explanation: string;
+  scheduledDate?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,6 +45,11 @@ const MCQQuestionSchema = new Schema<IMCQQuestion>(
     explanation: {
       type: String,
       default: "",
+    },
+    scheduledDate: {
+      type: String,
+      index: true,
+      default: null,
     },
   },
   { timestamps: true }

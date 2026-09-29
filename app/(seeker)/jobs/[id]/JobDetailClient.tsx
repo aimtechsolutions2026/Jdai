@@ -17,6 +17,7 @@ import {
   FileCheck2,
   ShieldCheck,
   Briefcase,
+  LogIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -165,8 +166,8 @@ export default function JobDetailClient({ jobId: initialJobId }: { jobId?: strin
       {/* Top Job Banner Card */}
       <div className="rounded-2xl border border-border bg-white p-6 sm:p-8 shadow-card space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="h-16 w-16 rounded-2xl bg-slate-100 border border-border flex items-center justify-center font-black text-2xl text-secondary overflow-hidden shrink-0">
+          <div className="flex items-start gap-4">
+            <div className="h-16 w-16 rounded-2xl bg-slate-100 border border-border flex items-center justify-center font-black text-2xl text-secondary overflow-hidden shrink-0 mt-0.5">
               {job.companyLogoUrl ? (
                 <img
                   src={job.companyLogoUrl}
@@ -180,33 +181,39 @@ export default function JobDetailClient({ jobId: initialJobId }: { jobId?: strin
                 job.companyName?.[0] || "C"
               )}
             </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-secondary tracking-tight">
+            <div className="space-y-1">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-secondary tracking-tight leading-snug">
                 {job.role}
               </h1>
-              <div className="flex flex-wrap items-center gap-3 text-sm text-text-secondary mt-1">
-                <span className="font-bold text-text-primary text-base">
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs sm:text-sm text-text-secondary mt-1">
+                <span className="font-bold text-text-primary text-sm sm:text-base">
                   {job.companyName}
                 </span>
-                <span>•</span>
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-4 w-4" />
-                  {job.location}
-                </span>
-                <span>•</span>
-                <span className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
-                  {formatRelativeTime(job.postedAt || new Date())}
-                </span>
+                {job.location && (
+                  <span className="inline-flex items-center gap-1">
+                    <span className="text-slate-300">•</span>
+                    <MapPin className="h-3.5 w-3.5 text-text-muted" />
+                    <span>{job.location}</span>
+                  </span>
+                )}
+                {job.postedAt && (
+                  <span className="inline-flex items-center gap-1">
+                    <span className="text-slate-300">•</span>
+                    <Clock className="h-3.5 w-3.5 text-text-muted" />
+                    <span>{formatRelativeTime(job.postedAt)}</span>
+                  </span>
+                )}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            {/* Share Job link button */}
-            <button
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            {/* Share Job link button - matched to size="lg" */}
+            <Button
+              variant="outline"
+              size="lg"
               onClick={handleShareJob}
-              className="h-11 px-3.5 rounded-xl border border-border bg-white text-text-secondary hover:text-primary hover:border-primary/40 transition-colors flex items-center gap-1.5 text-xs font-semibold shadow-subtle shrink-0"
+              className="gap-2 shrink-0 font-semibold"
               title="Share this job opportunity"
             >
               {copiedShare ? (
@@ -220,14 +227,15 @@ export default function JobDetailClient({ jobId: initialJobId }: { jobId?: strin
                   <span>Share</span>
                 </>
               )}
-            </button>
+            </Button>
 
             {!currentUser ? (
               <Button
                 size="lg"
                 className="w-full sm:w-auto font-bold gap-2 shadow-sm"
-                onClick={() => setShowApplyModal(true)}
+                onClick={() => router.push(`/login?returnUrl=/jobs/${jobId}`)}
               >
+                <LogIn className="h-4 w-4" />
                 <span>Sign In to Apply</span>
               </Button>
             ) : applied ? (

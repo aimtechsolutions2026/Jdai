@@ -19,7 +19,12 @@ export async function GET(req: NextRequest) {
       ? Number(searchParams.get("experienceMin"))
       : undefined;
 
-    const jobs = await JobRepository.findMany({
+    const pageParam = searchParams.get("page");
+    const limitParam = searchParams.get("limit");
+    const page = pageParam ? Math.max(1, Number(pageParam)) : 1;
+    const limit = limitParam ? Math.max(1, Math.min(50, Number(limitParam))) : 10;
+
+    const { jobs, totalCount, totalPages, hasMore } = await JobRepository.findManyPaginated({
       search,
       location,
       city,
@@ -28,10 +33,20 @@ export async function GET(req: NextRequest) {
       salaryMin,
       experienceMin,
       status: "published",
+      page,
+      limit,
     });
 
     return NextResponse.json(
-      { success: true, count: jobs.length, jobs },
+      {
+        success: true,
+        count: totalCount,
+        page,
+        limit,
+        totalPages,
+        hasMore,
+        jobs,
+      },
       {
         headers: {
           "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",

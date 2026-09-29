@@ -5,11 +5,15 @@ import { redis } from "@/lib/redis";
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getSessionUser();
+    const session = await getSessionUser(req);
     const todayQuestion = await McqRepository.getTodayQuestion();
+    const upcomingQuestions = await McqRepository.getUpcomingQuestions(4);
 
     if (!todayQuestion) {
-      return NextResponse.json({ error: "No question scheduled for today" }, { status: 404 });
+      return NextResponse.json({
+        error: "No question scheduled for today",
+        upcomingQuestions,
+      }, { status: 404 });
     }
 
     const todayStr = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
@@ -40,7 +44,14 @@ export async function GET(req: NextRequest) {
       explanation: hasAttempted ? todayQuestion.explanation : undefined,
     };
 
-    return NextResponse.json({ success: true, question: sanitizedQuestion, date: todayStr });
+    return NextResponse.json({
+      success: true,
+      question: sanitizedQuestion,
+      upcomingQuestions,
+      authenticated: !!session,
+      currentUser: session ? { id: session.userId, name: session.name } : null,
+      date: todayStr,
+    });
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to load today's question" },

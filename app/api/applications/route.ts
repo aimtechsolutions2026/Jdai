@@ -5,7 +5,7 @@ import { createNotification } from "@/lib/notifications";
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getSessionUser();
+    const session = await getSessionUser(req);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSessionUser();
+    const session = await getSessionUser(req);
     if (!session) {
       return NextResponse.json({ error: "Please log in to apply" }, { status: 401 });
     }
