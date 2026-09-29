@@ -2,9 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { LoginSchema } from "@/lib/zod-schemas";
 import { UserRepository } from "@/lib/repositories";
 import { verifyPassword, createToken, AUTH_COOKIE_NAME } from "@/lib/auth";
+import { connectToDatabase } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   try {
+    const conn = await connectToDatabase();
+    if (!conn) {
+      return NextResponse.json(
+        {
+          error: "Database Service Unavailable",
+          message:
+            "Unable to connect to the database. Please ensure your MongoDB Atlas cluster is online and your current IP address is whitelisted in MongoDB Atlas Network Access.",
+        },
+        { status: 503 }
+      );
+    }
+
     const body = await req.json();
     const parsed = LoginSchema.safeParse(body);
 
@@ -17,36 +30,21 @@ export async function POST(req: NextRequest) {
 
     const { email, password } = parsed.data;
 
-    let user = await UserRepository.findByEmailOrPhone(email);
+    const user = await UserRepository.findByEmailOrPhone(email);
 
-    // Provide friendly fallback for built-in demo credentials
-    if (!user) {
-      if (email.toLowerCase().startsWith("seeker@")) {
-        user = await UserRepository.findByEmail("seeker@codifypro.ai");
-      } else if (email.toLowerCase().startsWith("recruiter@")) {
-        user = await UserRepository.findByEmail("recruiter@codifypro.ai");
-      } else if (email.toLowerCase().startsWith("admin@")) {
-        user = await UserRepository.findByEmail("admin@codifypro.ai");
-      }
-    }
-
-    if (!user) {
+    if (!user || !user.passwordHash) {
       return NextResponse.json(
         { error: "Invalid email/phone or password" },
         { status: 401 }
       );
     }
 
-    // If it's a demo account or password matches
-    const isDemo = email.includes("codifypro.ai");
-    if (!isDemo && user.passwordHash) {
-      const isValid = await verifyPassword(password, user.passwordHash);
-      if (!isValid) {
-        return NextResponse.json(
-          { error: "Invalid email/phone or password" },
-          { status: 401 }
-        );
-      }
+    const isValid = await verifyPassword(password, user.passwordHash);
+    if (!isValid) {
+      return NextResponse.json(
+        { error: "Invalid email/phone or password" },
+        { status: 401 }
+      );
     }
 
     const token = await createToken({
@@ -78,7 +76,16 @@ export async function POST(req: NextRequest) {
     return response;
   } catch (error: any) {
     console.error("Login error:", error);
+    if (error?.message === "DATABASE_UNAVAILABLE") {
+      return NextResponse.json(
+        {
+          error: "Database Service Unavailable",
+          message:
+            "Unable to connect to the database. Please ensure your MongoDB Atlas cluster is online and your current IP address is whitelisted in MongoDB Atlas Network Access.",
+        },
+        { status: 503 }
+      );
+    }
     return NextResponse.json({ error: "Failed to sign in" }, { status: 500 });
   }
 }
-

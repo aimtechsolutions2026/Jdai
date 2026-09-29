@@ -35,11 +35,14 @@ export default function AdminJobsPage() {
   // Modals
   const [jobModalOpen, setJobModalOpen] = useState(false);
   const [jobModalMode, setJobModalMode] = useState<"create" | "edit">("create");
+  const [existingCities, setExistingCities] = useState<string[]>([]);
+  const [isCustomCity, setIsCustomCity] = useState(false);
   const [jobForm, setJobForm] = useState<any>({
     id: "",
     role: "",
     companyName: "",
     location: "Bengaluru, India (Hybrid)",
+    city: "Bengaluru",
     jobType: "full-time",
     currency: "INR",
     salaryMin: 1200000,
@@ -55,7 +58,18 @@ export default function AdminJobsPage() {
 
   useEffect(() => {
     fetchJobs();
+    fetchCities();
   }, []);
+
+  const fetchCities = async () => {
+    try {
+      const res = await fetch("/api/jobs/cities");
+      if (res.ok) {
+        const data = await res.json();
+        setExistingCities(data.cities || []);
+      }
+    } catch {}
+  };
 
   const fetchJobs = async () => {
     try {
@@ -80,11 +94,13 @@ export default function AdminJobsPage() {
 
   const openCreateModal = () => {
     setJobModalMode("create");
+    setIsCustomCity(false);
     setJobForm({
       id: "",
       role: "",
       companyName: "",
       location: "Bengaluru, India (Hybrid)",
+      city: "Bengaluru",
       jobType: "full-time",
       currency: "INR",
       salaryMin: 1200000,
@@ -98,11 +114,13 @@ export default function AdminJobsPage() {
 
   const openEditModal = (job: any) => {
     setJobModalMode("edit");
+    setIsCustomCity(false);
     setJobForm({
       id: job._id,
       role: job.role || "",
       companyName: job.companyName || "",
       location: job.location || "Remote",
+      city: job.city || "",
       jobType: job.jobType || "full-time",
       currency: job.salaryRange?.currency || "INR",
       salaryMin: job.salaryRange?.min ?? 1200000,
@@ -127,6 +145,7 @@ export default function AdminJobsPage() {
         role: jobForm.role,
         companyName: jobForm.companyName,
         location: jobForm.location,
+        city: jobForm.city || undefined,
         jobType: jobForm.jobType,
         salaryRange: {
           min: Number(jobForm.salaryMin),
@@ -161,6 +180,7 @@ export default function AdminJobsPage() {
 
       setJobModalOpen(false);
       await fetchJobs();
+      await fetchCities();
     } catch (err: any) {
       showFeedback("error", err.message || "Operation failed");
     } finally {
@@ -441,6 +461,47 @@ export default function AdminJobsPage() {
                 onChange={(e) => setJobForm({ ...jobForm, location: e.target.value })}
                 placeholder="San Francisco, CA or Remote"
               />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold uppercase text-text-secondary">
+                  City (Filterable)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsCustomCity(!isCustomCity)}
+                  className="text-[11px] font-bold text-primary hover:underline"
+                >
+                  {isCustomCity ? "Choose existing" : "+ New city"}
+                </button>
+              </div>
+              {isCustomCity || existingCities.length === 0 ? (
+                <Input
+                  value={jobForm.city || ""}
+                  onChange={(e) => setJobForm({ ...jobForm, city: e.target.value })}
+                  placeholder="e.g. Bengaluru, London, Austin"
+                />
+              ) : (
+                <select
+                  value={jobForm.city || ""}
+                  onChange={(e) => {
+                    if (e.target.value === "__NEW__") {
+                      setIsCustomCity(true);
+                    } else {
+                      setJobForm({ ...jobForm, city: e.target.value });
+                    }
+                  }}
+                  className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm text-text-primary"
+                >
+                  <option value="">Select an existing city...</option>
+                  {existingCities.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                  <option value="__NEW__">+ Add New City...</option>
+                </select>
+              )}
             </div>
             <div>
               <label className="block text-xs font-bold uppercase text-text-secondary mb-1">

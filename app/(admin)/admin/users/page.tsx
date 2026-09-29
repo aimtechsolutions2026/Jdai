@@ -145,6 +145,7 @@ export default function AdminUsersPage() {
             email: userForm.email,
             role: userForm.role,
             phone: userForm.phone,
+            password: userForm.password ? userForm.password : undefined,
             isVerified: userForm.isVerified,
             location: userForm.location,
             skills: skillsArray,
@@ -451,6 +452,17 @@ export default function AdminUsersPage() {
               />
             </div>
           )}
+          <div>
+            <label className="block text-xs font-bold uppercase text-text-secondary mb-1">
+              {userModalMode === "create" ? "Password" : "New Password (leave blank to keep current)"}
+            </label>
+            <Input
+              type="password"
+              value={userForm.password}
+              onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+              placeholder={userModalMode === "create" ? "Min 6 characters" : "Enter new password (optional)"}
+            />
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>

@@ -17,15 +17,23 @@ if (!global.mongooseCache) {
   global.mongooseCache = cached;
 }
 
+let lastFailureTimestamp = 0;
+const RETRY_COOLDOWN_MS = 15000;
+
 export async function connectToDatabase(): Promise<typeof mongoose | null> {
   if (cached.conn) {
     return cached.conn;
   }
 
+  // Prevent back-to-back 8s blocking timeouts on concurrent requests when offline/not whitelisted
+  if (Date.now() - lastFailureTimestamp < RETRY_COOLDOWN_MS) {
+    return null;
+  }
+
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
-      serverSelectionTimeoutMS: 8000,
+      serverSelectionTimeoutMS: 3500,
     };
 
     cached.promise = mongoose
@@ -34,10 +42,11 @@ export async function connectToDatabase(): Promise<typeof mongoose | null> {
         return mongooseInstance;
       })
       .catch((err) => {
+        lastFailureTimestamp = Date.now();
         console.warn(
           "MongoDB connection failed or not running locally:",
           err.message,
-          "— Utilizing mock in-memory fallback layer."
+          "— Database service is currently unavailable."
         );
         cached.promise = null;
         return null;

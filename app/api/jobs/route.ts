@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search") || undefined;
     const location = searchParams.get("location") || undefined;
+    const city = searchParams.get("city") || undefined;
     const jobType = searchParams.get("jobType") || undefined;
     const role = searchParams.get("role") || undefined;
     const salaryMin = searchParams.get("salaryMin")
@@ -21,6 +22,7 @@ export async function GET(req: NextRequest) {
     const jobs = await JobRepository.findMany({
       search,
       location,
+      city,
       jobType,
       role,
       salaryMin,
@@ -49,8 +51,17 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
+    let normalizedCity = body.city ? String(body.city).trim() : "";
+    if (normalizedCity) {
+      normalizedCity = normalizedCity
+        .split(" ")
+        .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : ""))
+        .join(" ");
+    }
+
     const newJob = await JobRepository.create({
       ...body,
+      city: normalizedCity,
       postedAt: new Date(),
       status: body.status || "published",
     });

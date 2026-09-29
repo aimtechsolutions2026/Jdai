@@ -421,6 +421,7 @@ export async function extractJobWithGroq(jobText: string): Promise<JobExtractedD
         ? { min: 1200000, max: 2000000, currency: "INR" }
         : { min: 120000, max: 170000, currency: "USD" },
       location: isIndianContext ? "Bengaluru, India (Hybrid)" : "Remote",
+      city: isIndianContext ? "Bengaluru" : "",
       pincode: "",
       experienceRequired: { min: 2, max: 5 },
       jobType: "hybrid",
@@ -503,6 +504,7 @@ ${jobText.slice(0, 10000)}`;
         ? { min: 1200000, max: 1800000, currency: "INR" }
         : { min: 120000, max: 160000, currency: "USD" },
       location: isIndianContext ? "Bengaluru, India (Hybrid)" : "Remote",
+      city: isIndianContext ? "Bengaluru" : "",
       pincode: "",
       experienceRequired: { min: 2, max: 5 },
       jobType: "hybrid",
