@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
         deletionRequested: true,
         deletionRequestedAt: updated.deletionRequestedAt,
         message:
-          "Account deletion request submitted. An administrator will review and process your request within 48 hours.",
+          "Account deletion scheduled. Your account and all associated data will be permanently deleted after 7 days. You can cancel this request at any time before then.",
       });
     }
 

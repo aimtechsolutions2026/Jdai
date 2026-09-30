@@ -72,13 +72,18 @@ export function PhoneInput({
         )}
       >
         {/* Country code selector - exactly 20% width */}
-        <div className="relative w-[20%] min-w-[76px] shrink-0 border-r border-border bg-slate-50/70 hover:bg-slate-100/80 transition-colors flex items-center">
+        <div className="relative w-[20%] min-w-[76px] shrink-0 border-r border-border bg-slate-50/70 hover:bg-slate-100/80 transition-colors flex items-center justify-between px-2.5">
+          <span className="text-xs sm:text-sm font-medium text-text-primary flex items-center gap-1.5 pointer-events-none truncate">
+            <span>{selectedCountry.flag}</span>
+            <span>{selectedCountry.dialCode}</span>
+          </span>
+          <ChevronDown className="w-3.5 h-3.5 opacity-60 text-text-muted shrink-0 pointer-events-none ml-0.5" />
           <select
             value={countryCode}
             onChange={(e) => onCountryCodeChange(e.target.value)}
             disabled={disabled}
             aria-label="Select Country Code"
-            className="w-full h-10 pl-2.5 pr-6 bg-transparent text-xs sm:text-sm font-medium text-text-primary appearance-none focus:outline-none cursor-pointer disabled:cursor-not-allowed"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
           >
             {COUNTRY_CODES.map((c) => (
               <option key={`${c.code}-${c.dialCode}`} value={c.dialCode}>
@@ -86,9 +91,6 @@ export function PhoneInput({
               </option>
             ))}
           </select>
-          <div className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-text-muted">
-            <ChevronDown className="w-3.5 h-3.5 opacity-60" />
-          </div>
         </div>
 
         {/* 10-digit Phone input - remaining 80% width */}
@@ -132,28 +134,20 @@ export function PhoneInput({
         </div>
       </div>
 
-      {/* Helper / Error messaging */}
-      {showHelper && (
-        <div className="flex items-center justify-between text-[11px] px-1">
+      {/* Error messaging (only shown when there is an error or invalid length) */}
+      {(error || isInvalid) && (
+        <div className="flex items-center text-[11px] px-1">
           {error ? (
             <p className="text-red-500 font-medium flex items-center gap-1">
               <AlertCircle className="w-3 h-3 shrink-0" />
               {error}
             </p>
-          ) : isInvalid ? (
+          ) : (
             <p className="text-red-500 font-medium flex items-center gap-1">
               <AlertCircle className="w-3 h-3 shrink-0" />
               Please enter 10 digits (currently {cleanDigits.length}/10).
             </p>
-          ) : (
-            <p className="text-text-muted">
-              Country code (20%) + exactly 10 digits mobile number
-            </p>
           )}
-
-          <span className="text-text-muted font-mono ml-auto">
-            {countryCode} {cleanDigits ? cleanDigits : "__________"}
-          </span>
         </div>
       )}
     </div>

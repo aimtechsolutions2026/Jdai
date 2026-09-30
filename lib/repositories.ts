@@ -1056,5 +1056,82 @@ export const NotificationRepository = {
   },
 };
 
+// DAILY ATTEMPT REPOSITORY
+export const DailyAttemptRepository = {
+  async recordAttempt(data: {
+    userId: string;
+    date: string;
+    questionId: string;
+    selectedOption: number;
+    isCorrect: boolean;
+  }) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const attempt = await DailyAttempt.findOneAndUpdate(
+          { userId: data.userId, date: data.date },
+          {
+            $set: {
+              ...data,
+              answeredAt: new Date(),
+            },
+          },
+          { upsert: true, new: true }
+        ).lean();
+        return attempt;
+      } catch (err) {
+        console.warn("DailyAttempt upsert failed:", err);
+      }
+    }
+    const existingIdx = memoryAttempts.findIndex(
+      (a) => String(a.userId) === String(data.userId) && a.date === data.date
+    );
+    const newAttempt = {
+      _id: `attempt_${Date.now()}`,
+      ...data,
+      answeredAt: new Date(),
+    };
+    if (existingIdx >= 0) {
+      memoryAttempts[existingIdx] = newAttempt;
+    } else {
+      memoryAttempts.push(newAttempt);
+    }
+    return newAttempt;
+  },
+
+  async getUserAttempts(userId: string) {
+    const conn = await connectToDatabase();
+    if (conn) {
+      try {
+        const attempts = await DailyAttempt.find({ userId })
+          .populate("questionId")
+          .sort({ date: -1 })
+          .lean();
+        if (attempts && attempts.length > 0) return attempts;
+      } catch (err) {
+        console.warn("DailyAttempt.find failed:", err);
+      }
+    }
+    const userAttempts = memoryAttempts
+      .filter((a) => String(a.userId) === String(userId))
+      .sort((a, b) => b.date.localeCompare(a.date));
+
+    const allQuestions = await McqRepository.getAll();
+    return userAttempts.map((att) => {
+      const q = allQuestions.find((qItem: any) => String(qItem._id) === String(att.questionId));
+      return {
+        ...att,
+        questionId: q || {
+          _id: att.questionId,
+          question: "DSA Challenge",
+          category: "Algorithms",
+          difficulty: "Medium",
+          options: [],
+        },
+      };
+    });
+  },
+};
+
 
 

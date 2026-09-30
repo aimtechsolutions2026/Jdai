@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   Flame,
@@ -9,27 +9,24 @@ import {
   ArrowRight,
   Sparkles,
   MapPin,
-  Lock,
-  User as UserIcon,
-  Phone,
-  Mail,
-  ShieldCheck,
-  AlertCircle,
   CheckCircle2,
-  AlertTriangle,
+  Clock,
+  UploadCloud,
+  FileText,
   Eye,
-  EyeOff,
+  Download,
   Check,
-  X,
+  Award,
+  Zap,
+  ChevronRight,
+  TrendingUp,
+  BarChart3,
   Calendar,
-  Save,
-  Trash2,
-  Power,
-  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { AtsResumeModal } from "@/components/profile/AtsResumeModal";
+import { printOrDownloadAtsResume } from "@/lib/ats-resume";
 import { formatSalaryRange, formatRelativeTime } from "@/lib/utils";
 
 export default function MyDashboardPage() {
@@ -37,59 +34,36 @@ export default function MyDashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [jobs, setJobs] = useState<any[]>([]);
-  const [applicationsCount, setApplicationsCount] = useState(0);
-  const [activeTab, setActiveTab] = useState<"account" | "overview">("account");
+  const [applications, setApplications] = useState<any[]>([]);
+  const [streakData, setStreakData] = useState<any>(null);
+  const [mcqAttempts, setMcqAttempts] = useState<any[]>([]);
+  const [todayQuestion, setTodayQuestion] = useState<any>(null);
 
-  // Personal Details Edit State
-  const [editName, setEditName] = useState("");
-  const [editPhone, setEditPhone] = useState("");
-  const [detailsSaving, setDetailsSaving] = useState(false);
-  const [detailsSuccess, setDetailsSuccess] = useState<string | null>(null);
-  const [detailsError, setDetailsError] = useState<string | null>(null);
-
-  // Password Edit State
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [passwordUpdating, setPasswordUpdating] = useState(false);
-  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-
-  // Account Status & Deletion State
-  const [statusUpdating, setStatusUpdating] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deletionReason, setDeletionReason] = useState("");
-  const [deletionProcessing, setDeletionProcessing] = useState(false);
-
-  // Password constraints
-  const hasMinLength = newPassword.length >= 8;
-  const hasUppercase = /[A-Z]/.test(newPassword);
-  const hasLowercase = /[a-z]/.test(newPassword);
-  const hasNumber = /[0-9]/.test(newPassword);
-  const isNewPasswordValid = hasMinLength && hasUppercase && hasLowercase && hasNumber;
-  const doPasswordsMatch = Boolean(
-    newPassword && confirmPassword && newPassword === confirmPassword
-  );
+  // Resume Upload State
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const [showAtsModal, setShowAtsModal] = useState(false);
 
   useEffect(() => {
     async function loadDashboardData() {
       try {
         setLoading(true);
-        const [meRes, jobsRes, appsRes] = await Promise.all([
+        const [meRes, jobsRes, appsRes, streakRes, mcqHistRes, todayMcqRes] = await Promise.all([
           fetch("/api/auth/me"),
           fetch("/api/jobs?limit=4"),
           fetch("/api/applications"),
+          fetch("/api/streak"),
+          fetch("/api/mcq/history"),
+          fetch("/api/mcq/today"),
         ]);
 
         if (meRes.ok) {
           const meData = await meRes.json();
           setUser(meData.user);
           setProfile(meData.profile);
-          setEditName(meData.user?.name || "");
-          setEditPhone(meData.user?.phone || meData.profile?.phone || "");
         }
 
         if (jobsRes.ok) {
@@ -99,7 +73,22 @@ export default function MyDashboardPage() {
 
         if (appsRes.ok) {
           const a = await appsRes.json();
-          setApplicationsCount(a.applications?.length || 0);
+          setApplications(a.applications || []);
+        }
+
+        if (streakRes.ok) {
+          const s = await streakRes.json();
+          setStreakData(s);
+        }
+
+        if (mcqHistRes.ok) {
+          const mh = await mcqHistRes.json();
+          setMcqAttempts(mh.attempts || []);
+        }
+
+        if (todayMcqRes.ok) {
+          const tq = await todayMcqRes.json();
+          setTodayQuestion(tq.question || null);
         }
       } catch (e) {
         console.error("Error loading dashboard data:", e);
@@ -111,816 +100,667 @@ export default function MyDashboardPage() {
     loadDashboardData();
   }, []);
 
-  // Handler: Save Personal Details
-  const handleSaveDetails = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setDetailsError(null);
-    setDetailsSuccess(null);
-    setDetailsSaving(true);
-
-    try {
-      const res = await fetch("/api/auth/me", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: editName, phone: editPhone }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to update personal details.");
-      }
-
-      setUser((prev: any) => ({ ...prev, name: data.user.name, phone: data.user.phone }));
-      setDetailsSuccess("Personal details updated successfully.");
-      setTimeout(() => setDetailsSuccess(null), 4000);
-    } catch (err: any) {
-      setDetailsError(err.message);
-    } finally {
-      setDetailsSaving(false);
-    }
-  };
-
-  // Handler: Change Password
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPasswordError(null);
-    setPasswordSuccess(null);
-
-    if (!isNewPasswordValid) {
-      setPasswordError(
-        "New password must be at least 8 characters long and contain uppercase, lowercase, and a number."
-      );
+  // Resume Upload Handler with automated polling
+  const handleResumeFile = async (file: File) => {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".pdf") && file.type !== "application/pdf") {
+      setUploadError("Please upload a PDF format resume only.");
       return;
     }
 
-    if (!doPasswordsMatch) {
-      setPasswordError("New passwords do not match.");
-      return;
-    }
-
-    setPasswordUpdating(true);
-    try {
-      const res = await fetch("/api/auth/change-password", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to update password.");
-      }
-
-      setPasswordSuccess("Password updated successfully!");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setTimeout(() => setPasswordSuccess(null), 5000);
-    } catch (err: any) {
-      setPasswordError(err.message);
-    } finally {
-      setPasswordUpdating(false);
-    }
-  };
-
-  // Handler: Toggle Account Status (Activate / Deactivate)
-  const handleToggleAccountStatus = async () => {
-    setStatusMessage(null);
-    setStatusUpdating(true);
-    const targetStatus = !(user?.isActive ?? true);
+    setUploadingResume(true);
+    setUploadStatus("Uploading PDF resume...");
+    setUploadError(null);
+    setUploadSuccess(null);
 
     try {
-      const res = await fetch("/api/auth/account-status", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: targetStatus }),
-      });
+      const formData = new FormData();
+      formData.append("file", file);
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to update account status.");
-      }
-
-      setUser((prev: any) => ({ ...prev, isActive: targetStatus }));
-      setStatusMessage(data.message);
-      setTimeout(() => setStatusMessage(null), 4000);
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setStatusUpdating(false);
-    }
-  };
-
-  // Handler: Request Deletion
-  const handleSubmitDeletionRequest = async () => {
-    setDeletionProcessing(true);
-    try {
-      const res = await fetch("/api/auth/account-status", {
+      const res = await fetch("/api/resume/upload", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "request_deletion", reason: deletionReason }),
+        body: formData,
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to submit deletion request.");
+      if (!res.ok) throw new Error(data.error || "Failed to upload resume.");
+
+      const jobId = data.jobId;
+      setUploadStatus("Extracting skills & profile details via automated parsing...");
+
+      let attempts = 0;
+      const maxAttempts = 30;
+
+      while (attempts < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        attempts++;
+
+        const statusRes = await fetch(`/api/resume/status/${jobId}`);
+        if (!statusRes.ok) continue;
+
+        const statusData = await statusRes.json();
+        if (statusData.status === "completed") {
+          const updatedProfile = statusData.result?.profile || statusData.result;
+          if (updatedProfile) {
+            setProfile(updatedProfile);
+          }
+          setUploadSuccess("Resume successfully parsed and profile synced!");
+          setUploadingResume(false);
+          setUploadStatus(null);
+          setTimeout(() => setUploadSuccess(null), 5000);
+          return;
+        } else if (statusData.status === "failed") {
+          throw new Error(statusData.error || "Automated resume parsing failed.");
+        }
       }
 
-      setUser((prev: any) => ({
-        ...prev,
-        deletionRequested: true,
-        deletionRequestedAt: data.deletionRequestedAt || new Date(),
-      }));
-      setShowDeleteModal(false);
-      setDeletionReason("");
+      setUploadSuccess("Resume uploaded. Processing will finish in background.");
     } catch (err: any) {
-      alert(err.message);
+      setUploadError(err.message || "Failed to upload resume.");
     } finally {
-      setDeletionProcessing(false);
+      setUploadingResume(false);
+      setUploadStatus(null);
     }
   };
 
-  // Handler: Cancel Deletion Request
-  const handleCancelDeletionRequest = async () => {
-    setDeletionProcessing(true);
-    try {
-      const res = await fetch("/api/auth/account-status", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "cancel_deletion" }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to cancel deletion request.");
-      }
-
-      setUser((prev: any) => ({
-        ...prev,
-        deletionRequested: false,
-        deletionRequestedAt: null,
-      }));
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setDeletionProcessing(false);
-    }
+  // Applications Status Breakdown
+  const appStatusCounts = {
+    applied: 0,
+    viewed: 0,
+    shortlisted: 0,
+    interview: 0,
+    rejected: 0,
   };
 
-  const completeness = profile?.profileCompleteness || 0;
-  const streak = profile?.streak?.current || user?.streak?.current || 0;
+  applications.forEach((app) => {
+    const s = (app.status || "applied").toLowerCase();
+    if (s.includes("interview")) appStatusCounts.interview++;
+    else if (s.includes("shortlist")) appStatusCounts.shortlisted++;
+    else if (s.includes("view")) appStatusCounts.viewed++;
+    else if (s.includes("reject")) appStatusCounts.rejected++;
+    else appStatusCounts.applied++;
+  });
+
+  const totalApps = applications.length;
+
+  // MCQ Stats Breakdown
+  const totalMcqSolved = mcqAttempts.length;
+  const correctMcqCount = mcqAttempts.filter((a) => a.isCorrect).length;
+  const mcqAccuracy =
+    totalMcqSolved > 0 ? Math.round((correctMcqCount / totalMcqSolved) * 100) : 0;
+  const streak = streakData?.currentStreak || user?.streak?.current || 0;
+  const xp = streakData?.xp || user?.xp || 0;
+  const completeness = profile?.profileCompleteness || 50;
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-10 space-y-6">
-        <div className="h-10 w-64 bg-slate-200 animate-pulse rounded-xl" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-28 bg-slate-200 animate-pulse rounded-xl" />
+      <div className="mx-auto max-w-7xl px-3 sm:px-6 py-6 space-y-4">
+        <div className="h-8 w-60 bg-slate-200 animate-pulse rounded-lg" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-24 bg-slate-200 animate-pulse rounded-xl" />
           ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="h-64 bg-slate-200 animate-pulse rounded-xl" />
+          <div className="h-64 bg-slate-200 animate-pulse rounded-xl" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border pb-6">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-3xl font-black tracking-tight text-secondary">
-              My Dashboard
-            </h1>
-            <Badge variant="primary" size="sm" className="capitalize">
-              {user?.role || "Seeker"}
-            </Badge>
-            {user?.isVerified && (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                Verified
-              </span>
-            )}
-          </div>
-          <p className="text-sm text-text-secondary mt-1">
-            Manage your personal details, password security, account settings, and automated recommendations.
-          </p>
-        </div>
-
+    <div className="mx-auto max-w-7xl px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-5">
+      {/* Compact Top Header */}
+      <div className="border-b border-border pb-3 sm:pb-3.5">
         <div className="flex items-center gap-2">
-          <Link href="/profile">
-            <Button size="sm" variant="outline" className="gap-1.5 text-xs font-semibold">
-              <UserIcon className="h-3.5 w-3.5" />
-              <span>Full Profile &amp; Resume</span>
-            </Button>
-          </Link>
-          <Link href="/jobs">
-            <Button size="sm" className="gap-1.5 text-xs font-bold">
-              <Briefcase className="h-3.5 w-3.5" />
-              <span>Browse Jobs</span>
-            </Button>
-          </Link>
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-secondary">
+            Welcome back, {user?.name?.split(" ")[0] || "Developer"}
+          </h1>
+          <Badge variant="primary" size="sm" className="capitalize text-[11px] font-bold">
+            {user?.role || "Seeker"}
+          </Badge>
         </div>
+        <p className="text-xs text-text-secondary mt-0.5">
+          Your application pipeline, daily DSA consistency, and resume health overview.
+        </p>
       </div>
 
-      {/* Account Deletion Request Alert (if active) */}
+      {/* Account Deletion Notice (if pending) */}
       {user?.deletionRequested && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
-              <div>
-                <h4 className="text-sm font-bold text-rose-900">
-                  Account Deletion Request Pending
-                </h4>
-                <p className="text-xs text-rose-700 mt-0.5">
-                  You requested account deletion on{" "}
-                  {user.deletionRequestedAt ? new Date(user.deletionRequestedAt).toLocaleDateString() : "recently"}.
-                  Our administrative team will process your request within 48 hours.
-                </p>
-              </div>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleCancelDeletionRequest}
-              isLoading={deletionProcessing}
-              className="border-rose-300 text-rose-800 hover:bg-rose-100 text-xs shrink-0"
-            >
-              <RotateCcw className="h-3.5 w-3.5 mr-1" />
-              Cancel Deletion Request
-            </Button>
+        <div className="rounded-xl border border-rose-200 bg-rose-50/80 p-3 flex items-center justify-between gap-3 text-xs">
+          <div className="text-rose-900 font-medium">
+            Account deletion request is pending review. You can manage or cancel this request inside your{" "}
+            <Link href="/profile" className="font-bold underline text-rose-950">
+              Profile Settings
+            </Link>.
           </div>
+          <Link href="/profile">
+            <Button size="sm" variant="outline" className="border-rose-300 text-rose-800 text-[11px] h-7">
+              Manage in Profile
+            </Button>
+          </Link>
         </div>
       )}
 
-      {/* Tabs Navigation */}
-      <div className="flex items-center gap-2 border-b border-border pb-1">
-        <button
-          onClick={() => setActiveTab("account")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-xl transition-all ${
-            activeTab === "account"
-              ? "bg-primary text-white shadow-sm"
-              : "text-text-secondary hover:text-text-primary hover:bg-slate-100"
-          }`}
-        >
-          <UserIcon className="h-4 w-4" />
-          <span>Account &amp; Security</span>
-        </button>
+      {/* 4 Compact Metric Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Metric 1: Daily Streak */}
+        <Link href="/mcq" className="group">
+          <div className="rounded-xl border border-amber-200/90 bg-gradient-to-br from-amber-50/70 to-orange-50/40 p-3.5 shadow-sm hover:border-amber-400 hover:shadow-md transition-all">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900">
+                DSA Streak
+              </span>
+              <div className="h-7 w-7 rounded-lg bg-amber-100 flex items-center justify-center text-accent">
+                <Flame className="h-4 w-4 fill-accent" />
+              </div>
+            </div>
+            <div className="mt-2 flex items-baseline gap-1.5">
+              <span className="text-2xl font-black text-secondary">{streak}</span>
+              <span className="text-[11px] font-semibold text-accent-dark">Days Continuous</span>
+            </div>
+            <div className="mt-1 text-[11px] text-text-secondary flex items-center gap-1 group-hover:text-accent-dark">
+              <span>{todayQuestion?.hasAttempted ? "Solved today" : "Ready for today"}</span>
+              <ChevronRight className="h-3 w-3" />
+            </div>
+          </div>
+        </Link>
 
-        <button
-          onClick={() => setActiveTab("overview")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-xl transition-all ${
-            activeTab === "overview"
-              ? "bg-primary text-white shadow-sm"
-              : "text-text-secondary hover:text-text-primary hover:bg-slate-100"
-          }`}
-        >
-          <Briefcase className="h-4 w-4" />
-          <span>Activity &amp; Recommendations</span>
-        </button>
+        {/* Metric 2: Applications */}
+        <Link href="/applications" className="group">
+          <div className="rounded-xl border border-border bg-white p-3.5 shadow-sm hover:border-primary hover:shadow-md transition-all">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">
+                Applications
+              </span>
+              <div className="h-7 w-7 rounded-lg bg-blue-50 flex items-center justify-center text-primary">
+                <Briefcase className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="mt-2 flex items-baseline gap-1.5">
+              <span className="text-2xl font-black text-secondary">{totalApps}</span>
+              <span className="text-[11px] text-text-secondary">Submitted</span>
+            </div>
+            <div className="mt-1 text-[11px] text-text-secondary flex items-center gap-1 group-hover:text-primary">
+              <span>{appStatusCounts.shortlisted} Shortlisted</span>
+              <ChevronRight className="h-3 w-3" />
+            </div>
+          </div>
+        </Link>
+
+        {/* Metric 3: MCQ Accuracy */}
+        <Link href="/mcq" className="group">
+          <div className="rounded-xl border border-border bg-white p-3.5 shadow-sm hover:border-emerald-400 hover:shadow-md transition-all">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
+                DSA Solved
+              </span>
+              <div className="h-7 w-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                <CheckCircle2 className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="mt-2 flex items-baseline gap-1.5">
+              <span className="text-2xl font-black text-secondary">{totalMcqSolved}</span>
+              <span className="text-[11px] text-emerald-700 font-semibold">{mcqAccuracy}% Accuracy</span>
+            </div>
+            <div className="mt-1 text-[11px] text-text-secondary flex items-center gap-1 group-hover:text-emerald-700">
+              <span>{xp} XP Earned</span>
+              <ChevronRight className="h-3 w-3" />
+            </div>
+          </div>
+        </Link>
+
+        {/* Metric 4: Profile & Resume ATS */}
+        <Link href="/profile" className="group">
+          <div className="rounded-xl border border-border bg-white p-3.5 shadow-sm hover:border-indigo-400 hover:shadow-md transition-all">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">
+                Profile Health
+              </span>
+              <div className="h-7 w-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                <FileCheck2 className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="mt-2 flex items-baseline gap-1.5">
+              <span className="text-2xl font-black text-secondary">{completeness}%</span>
+              <span className="text-[11px] text-text-secondary">ATS Ready</span>
+            </div>
+            <div className="mt-1 text-[11px] text-text-secondary flex items-center gap-1 group-hover:text-primary">
+              <span>{profile?.skills?.length || 0} Skills indexed</span>
+              <ChevronRight className="h-3 w-3" />
+            </div>
+          </div>
+        </Link>
       </div>
 
-      {/* TAB 1: ACCOUNT & SECURITY */}
-      {activeTab === "account" && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 1. Personal Details Card */}
-            <div className="rounded-2xl border border-border bg-white p-6 shadow-card space-y-5">
-              <div className="flex items-center justify-between border-b border-border pb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-9 w-9 rounded-xl bg-blue-50 text-primary flex items-center justify-center font-bold">
-                    <UserIcon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-bold text-text-primary">Personal Details</h2>
-                    <p className="text-xs text-text-secondary">View and update your contact identity</p>
-                  </div>
+      {/* Visual Graphs & Analytics Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+        {/* GRAPH 1: Job Applications Funnel & Pipeline */}
+        <div className="rounded-xl border border-border bg-white p-4 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between border-b border-border pb-2.5">
+              <div className="flex items-center gap-2">
+                <div className="h-7 w-7 rounded-lg bg-blue-50 text-primary flex items-center justify-center">
+                  <BarChart3 className="h-4 w-4" />
                 </div>
-                <span className="text-[11px] text-text-secondary flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  Joined {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "2026"}
+                <div>
+                  <h2 className="text-sm font-bold text-text-primary">Applied Jobs Pipeline</h2>
+                  <p className="text-[11px] text-text-secondary">Real-time status tracking across recruiters</p>
+                </div>
+              </div>
+              <Link href="/applications" className="text-[11px] font-bold text-primary hover:underline flex items-center gap-0.5">
+                <span>View all</span>
+                <ChevronRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            {/* Pipeline Visual Bar */}
+            <div className="pt-3 space-y-2">
+              <div className="flex items-center justify-between text-xs text-text-secondary">
+                <span>Status Distribution</span>
+                <span className="font-semibold text-secondary">{totalApps} Total Applications</span>
+              </div>
+
+              {totalApps === 0 ? (
+                <div className="py-6 text-center text-xs text-text-secondary border border-dashed rounded-lg bg-slate-50/50">
+                  You haven&apos;t applied to any jobs yet. Browse recommended positions below!
+                </div>
+              ) : (
+                <>
+                  {/* Segmented Pipeline Progress Bar */}
+                  <div className="h-3.5 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+                    {appStatusCounts.applied > 0 && (
+                      <div
+                        style={{ width: `${(appStatusCounts.applied / totalApps) * 100}%` }}
+                        className="bg-blue-500 hover:bg-blue-600 transition-all"
+                        title={`Applied: ${appStatusCounts.applied}`}
+                      />
+                    )}
+                    {appStatusCounts.viewed > 0 && (
+                      <div
+                        style={{ width: `${(appStatusCounts.viewed / totalApps) * 100}%` }}
+                        className="bg-amber-400 hover:bg-amber-500 transition-all"
+                        title={`Under Review: ${appStatusCounts.viewed}`}
+                      />
+                    )}
+                    {appStatusCounts.shortlisted > 0 && (
+                      <div
+                        style={{ width: `${(appStatusCounts.shortlisted / totalApps) * 100}%` }}
+                        className="bg-emerald-500 hover:bg-emerald-600 transition-all"
+                        title={`Shortlisted: ${appStatusCounts.shortlisted}`}
+                      />
+                    )}
+                    {appStatusCounts.interview > 0 && (
+                      <div
+                        style={{ width: `${(appStatusCounts.interview / totalApps) * 100}%` }}
+                        className="bg-indigo-600 hover:bg-indigo-700 transition-all"
+                        title={`Interview: ${appStatusCounts.interview}`}
+                      />
+                    )}
+                    {appStatusCounts.rejected > 0 && (
+                      <div
+                        style={{ width: `${(appStatusCounts.rejected / totalApps) * 100}%` }}
+                        className="bg-slate-300 hover:bg-slate-400 transition-all"
+                        title={`Archived: ${appStatusCounts.rejected}`}
+                      />
+                    )}
+                  </div>
+
+                  {/* Stage Metrics Grid */}
+                  <div className="grid grid-cols-4 gap-2 pt-2 text-center text-[11px]">
+                    <div className="p-2 rounded-lg bg-blue-50/60 border border-blue-100">
+                      <div className="font-black text-blue-700 text-sm">{appStatusCounts.applied}</div>
+                      <div className="text-slate-600 text-[10px]">Applied</div>
+                    </div>
+                    <div className="p-2 rounded-lg bg-amber-50/60 border border-amber-100">
+                      <div className="font-black text-amber-700 text-sm">{appStatusCounts.viewed}</div>
+                      <div className="text-slate-600 text-[10px]">In Review</div>
+                    </div>
+                    <div className="p-2 rounded-lg bg-emerald-50/60 border border-emerald-100">
+                      <div className="font-black text-emerald-700 text-sm">{appStatusCounts.shortlisted}</div>
+                      <div className="text-slate-600 text-[10px]">Shortlisted</div>
+                    </div>
+                    <div className="p-2 rounded-lg bg-indigo-50/60 border border-indigo-100">
+                      <div className="font-black text-indigo-700 text-sm">{appStatusCounts.interview}</div>
+                      <div className="text-slate-600 text-[10px]">Interview</div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Recent Applications List */}
+          {applications.length > 0 && (
+            <div className="pt-3 border-t border-border mt-3 space-y-1.5">
+              <span className="text-[11px] font-bold text-text-secondary uppercase tracking-wider block">
+                Recent Applications
+              </span>
+              {applications.slice(0, 2).map((app) => (
+                <div
+                  key={app._id}
+                  className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200/80 text-xs"
+                >
+                  <div className="truncate mr-2">
+                    <span className="font-bold text-text-primary block truncate">
+                      {app.job?.role || "Software Engineer"}
+                    </span>
+                    <span className="text-[10px] text-text-secondary truncate">
+                      {app.job?.companyName || "Tech Enterprise"} • {formatRelativeTime(app.appliedAt)}
+                    </span>
+                  </div>
+                  <Badge
+                    size="sm"
+                    variant={
+                      app.status === "shortlisted"
+                        ? "success"
+                        : app.status === "interview"
+                        ? "primary"
+                        : app.status === "viewed"
+                        ? "warning"
+                        : "outline"
+                    }
+                    className="capitalize text-[10px] shrink-0 font-bold"
+                  >
+                    {app.status || "Applied"}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* GRAPH 2: Daily DSA & Practice Consistency Graph */}
+        <div className="rounded-xl border border-border bg-white p-4 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between border-b border-border pb-2.5">
+              <div className="flex items-center gap-2">
+                <div className="h-7 w-7 rounded-lg bg-amber-50 text-accent flex items-center justify-center">
+                  <TrendingUp className="h-4 w-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-text-primary">DSA Practice Consistency</h2>
+                  <p className="text-[11px] text-text-secondary">Daily question activity &amp; retention rate</p>
+                </div>
+              </div>
+              <Link href="/mcq" className="text-[11px] font-bold text-accent-dark hover:underline flex items-center gap-0.5">
+                <span>Solve Today</span>
+                <ChevronRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            {/* 14-Day Activity Dots Matrix */}
+            <div className="pt-3 space-y-2.5">
+              <div className="flex items-center justify-between text-xs text-text-secondary">
+                <span>14-Day Consistency Activity</span>
+                <span className="font-bold text-accent flex items-center gap-1">
+                  <Flame className="h-3.5 w-3.5 fill-accent" />
+                  {streak} Days Active Streak
                 </span>
               </div>
 
-              {detailsSuccess && (
-                <div className="flex items-center gap-2 rounded-xl bg-emerald-50 p-3 text-xs text-emerald-800 border border-emerald-200">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-                  <span>{detailsSuccess}</span>
-                </div>
-              )}
-
-              {detailsError && (
-                <div className="flex items-center gap-2 rounded-xl bg-rose-50 p-3 text-xs text-rose-800 border border-rose-200">
-                  <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
-                  <span>{detailsError}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleSaveDetails} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-text-primary uppercase tracking-wider mb-1.5">
-                    Full Name
-                  </label>
-                  <Input
-                    type="text"
-                    required
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    placeholder="Enter full name"
-                    icon={<UserIcon className="h-4 w-4" />}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-text-primary uppercase tracking-wider mb-1.5">
-                    Registered Email Address
-                  </label>
-                  <Input
-                    type="email"
-                    disabled
-                    value={user?.email || ""}
-                    placeholder="Enter email"
-                    icon={<Mail className="h-4 w-4 text-slate-400" />}
-                    className="bg-slate-50 cursor-not-allowed text-slate-500"
-                  />
-                  <span className="text-[10px] text-text-secondary mt-1 block">
-                    Email is locked to your account identity.
-                  </span>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-text-primary uppercase tracking-wider mb-1.5">
-                    Phone Number
-                  </label>
-                  <Input
-                    type="tel"
-                    value={editPhone}
-                    onChange={(e) => setEditPhone(e.target.value)}
-                    placeholder="Enter phone number"
-                    icon={<Phone className="h-4 w-4" />}
-                  />
-                </div>
-
-                <div className="pt-2 flex items-center justify-between">
-                  <span className="text-xs text-text-secondary">
-                    Changes reflect across applications automatically.
-                  </span>
-                  <Button type="submit" size="sm" isLoading={detailsSaving} className="gap-1.5 font-bold">
-                    <Save className="h-3.5 w-3.5" />
-                    <span>Save Details</span>
-                  </Button>
-                </div>
-              </form>
-            </div>
-
-            {/* 2. Password Edit Card */}
-            <div className="rounded-2xl border border-border bg-white p-6 shadow-card space-y-5">
-              <div className="flex items-center gap-2.5 border-b border-border pb-4">
-                <div className="h-9 w-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-                  <Lock className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-text-primary">Password Security</h2>
-                  <p className="text-xs text-text-secondary">Update your account authentication password</p>
-                </div>
-              </div>
-
-              {passwordSuccess && (
-                <div className="flex items-center gap-2 rounded-xl bg-emerald-50 p-3 text-xs text-emerald-800 border border-emerald-200">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-                  <span>{passwordSuccess}</span>
-                </div>
-              )}
-
-              {passwordError && (
-                <div className="flex items-center gap-2 rounded-xl bg-rose-50 p-3 text-xs text-rose-800 border border-rose-200">
-                  <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
-                  <span>{passwordError}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleChangePassword} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-text-primary uppercase tracking-wider mb-1.5">
-                    Current Password
-                  </label>
-                  <div className="relative">
-                    <Input
-                      type={showCurrentPassword ? "text" : "password"}
-                      required
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="Enter current password"
-                      icon={<Lock className="h-4 w-4" />}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                    >
-                      {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-text-primary uppercase tracking-wider mb-1.5">
-                    New Password
-                  </label>
-                  <div className="relative">
-                    <Input
-                      type={showNewPassword ? "text" : "password"}
-                      required
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Enter new password"
-                      icon={<Lock className="h-4 w-4" />}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                    >
-                      {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-
-                  {/* Password constraint checklist */}
-                  {newPassword && (
-                    <div className="mt-2 rounded-xl bg-slate-50 border border-slate-200 p-2.5 space-y-1 text-[11px]">
-                      <div className="font-semibold text-slate-700 pb-0.5">Password requirements:</div>
-                      <div className={`flex items-center gap-1.5 ${hasMinLength ? "text-emerald-600 font-medium" : "text-slate-500"}`}>
-                        {hasMinLength ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <X className="h-3.5 w-3.5 text-slate-400" />}
-                        <span>At least 8 characters</span>
-                      </div>
-                      <div className={`flex items-center gap-1.5 ${hasUppercase && hasLowercase ? "text-emerald-600 font-medium" : "text-slate-500"}`}>
-                        {hasUppercase && hasLowercase ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <X className="h-3.5 w-3.5 text-slate-400" />}
-                        <span>Uppercase and lowercase letters</span>
-                      </div>
-                      <div className={`flex items-center gap-1.5 ${hasNumber ? "text-emerald-600 font-medium" : "text-slate-500"}`}>
-                        {hasNumber ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <X className="h-3.5 w-3.5 text-slate-400" />}
-                        <span>At least one number (0-9)</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-text-primary uppercase tracking-wider mb-1.5">
-                    Confirm New Password
-                  </label>
-                  <Input
-                    type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm new password"
-                    icon={<Lock className="h-4 w-4" />}
-                  />
-                  {confirmPassword && (
-                    <div className="mt-1.5 text-[11px] font-medium">
-                      {doPasswordsMatch ? (
-                        <span className="text-emerald-600 flex items-center gap-1">
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Passwords match
-                        </span>
-                      ) : (
-                        <span className="text-rose-600 flex items-center gap-1">
-                          <AlertCircle className="h-3.5 w-3.5" /> Passwords do not match
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="pt-2 flex items-center justify-end">
-                  <Button type="submit" size="sm" isLoading={passwordUpdating} className="font-bold">
-                    Update Password
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>
-
-          {/* 3. Account Status & Deletion Request Card */}
-          <div className="rounded-2xl border border-border bg-white p-6 shadow-card space-y-6">
-            <div className="flex items-center gap-2.5 border-b border-border pb-4">
-              <div className="h-9 w-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold">
-                <Power className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-text-primary">Account Status &amp; Deletion Request</h2>
-                <p className="text-xs text-text-secondary">Control visibility to recruiters or request complete account removal</p>
-              </div>
-            </div>
-
-            {statusMessage && (
-              <div className="flex items-center gap-2 rounded-xl bg-blue-50 p-3 text-xs text-blue-800 border border-blue-200">
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-blue-600" />
-                <span>{statusMessage}</span>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Account Activation / Deactivation */}
-              <div className="rounded-xl border border-border bg-slate-50/50 p-4 space-y-3 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-text-primary">
-                      Profile Discoverability
-                    </span>
-                    <Badge variant={user?.isActive ?? true ? "primary" : "outline"} size="sm">
-                      {user?.isActive ?? true ? "Active" : "Deactivated"}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-text-secondary mt-2 leading-relaxed">
-                    When active, your profile is discoverable in candidate search. If deactivated, your profile is hidden from recruiters, but all your applications and MCQ streak remain preserved.
-                  </p>
-                </div>
-
-                <div className="pt-2">
-                  <Button
-                    size="sm"
-                    variant={user?.isActive ?? true ? "outline" : "primary"}
-                    onClick={handleToggleAccountStatus}
-                    isLoading={statusUpdating}
-                    className="w-full text-xs font-bold"
-                  >
-                    {user?.isActive ?? true ? "Deactivate Account" : "Activate Account"}
-                  </Button>
-                </div>
-              </div>
-
-              {/* Account Deletion Request */}
-              <div className="rounded-xl border border-rose-200 bg-rose-50/30 p-4 space-y-3 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-rose-900">
-                      Permanent Deletion
-                    </span>
-                    <Badge variant="outline" size="sm" className="border-rose-300 text-rose-700">
-                      Irreversible
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-text-secondary mt-2 leading-relaxed">
-                    Submit an account deletion request to permanently erase your profile, applications, MCQ streaks, and account credentials from CodifyPro.
-                  </p>
-                </div>
-
-                <div className="pt-2">
-                  {user?.deletionRequested ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleCancelDeletionRequest}
-                      isLoading={deletionProcessing}
-                      className="w-full text-xs font-bold border-rose-300 text-rose-800 hover:bg-rose-100"
-                    >
-                      Cancel Deletion Request
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowDeleteModal(true)}
-                      className="w-full text-xs font-bold border-rose-300 text-rose-700 hover:bg-rose-50"
-                    >
-                      <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                      Request Account Deletion
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 2: OVERVIEW & RECOMMENDATIONS */}
-      {activeTab === "overview" && (
-        <div className="space-y-8">
-          {/* Top KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Streak Card */}
-            <Link href="/mcq" className="block group">
-              <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5 shadow-card transition-all group-hover:border-amber-400 group-hover:shadow-hover">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-accent-dark">
-                    Daily Streak
-                  </span>
-                  <div className="h-8 w-8 rounded-lg bg-amber-100 flex items-center justify-center text-accent">
-                    <Flame className="h-5 w-5 fill-accent" />
-                  </div>
-                </div>
-                <div className="mt-3 flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-secondary">{streak}</span>
-                  <span className="text-xs font-semibold text-accent-dark">Days Active</span>
-                </div>
-                <div className="mt-2 text-xs text-text-secondary flex items-center gap-1 group-hover:text-accent-dark">
-                  <span>Solve today&apos;s challenge</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </div>
-              </div>
-            </Link>
-
-            {/* Applications Sent */}
-            <Link href="/applications" className="block group">
-              <div className="rounded-2xl border border-border bg-white p-5 shadow-card transition-all group-hover:border-primary group-hover:shadow-hover">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-text-secondary">
-                    Applications
-                  </span>
-                  <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center text-primary">
-                    <Briefcase className="h-4 w-4" />
-                  </div>
-                </div>
-                <div className="mt-3 flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-secondary">{applicationsCount}</span>
-                  <span className="text-xs text-text-secondary">Submitted</span>
-                </div>
-                <div className="mt-2 text-xs text-text-secondary flex items-center gap-1 group-hover:text-primary">
-                  <span>View status timeline</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </div>
-              </div>
-            </Link>
-
-            {/* Profile Completeness */}
-            <Link href="/profile" className="block group">
-              <div className="rounded-2xl border border-border bg-white p-5 shadow-card transition-all group-hover:border-primary group-hover:shadow-hover">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-text-secondary">
-                    Profile Health
-                  </span>
-                  <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                    <FileCheck2 className="h-4 w-4" />
-                  </div>
-                </div>
-                <div className="mt-3 flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-secondary">{completeness}%</span>
-                  <span className="text-xs text-text-secondary">Complete</span>
-                </div>
-                <div className="mt-2 text-xs text-text-secondary flex items-center gap-1 group-hover:text-primary">
-                  <span>Refine resume &amp; skills</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </div>
-              </div>
-            </Link>
-          </div>
-
-          {/* Profile Completeness Nudge Banner (if < 90%) */}
-          {completeness < 90 && (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-5 shadow-sm">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-bold text-secondary">
-                    Your profile is {completeness}% complete
-                  </span>
-                </div>
-                <p className="text-xs text-text-secondary">
-                  Upload your latest PDF resume or add 3 more skills to unlock top candidate ranking.
-                </p>
-              </div>
-              <Link href="/profile">
-                <Button size="sm" variant="primary">
-                  Complete Profile Now
-                </Button>
-              </Link>
-            </div>
-          )}
-
-          {/* Recommended Jobs Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold tracking-tight text-secondary">
-                  Automated Job Recommendations
-                </h2>
-                <p className="text-xs text-text-secondary">
-                  Matched via automated skill parsing: {profile?.skills?.slice(0, 4).join(", ") || "Full Stack"}
-                </p>
-              </div>
-              <Link href="/jobs" className="text-xs font-semibold text-primary hover:underline">
-                View all jobs →
-              </Link>
-            </div>
-
-            {jobs.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border bg-white p-8 text-center text-xs text-text-secondary shadow-card">
-                No active jobs found. New engineering positions posted by recruiters will appear here automatically!
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {jobs.slice(0, 4).map((job) => (
+              <div className="grid grid-cols-7 gap-1.5 pt-1">
+                {streakData?.days?.map((day: any, i: number) => (
                   <div
-                    key={job._id}
-                    className="rounded-xl border border-border bg-white p-5 shadow-card hover:shadow-hover hover:border-slate-300 transition-all flex flex-col justify-between space-y-4"
+                    key={i}
+                    title={day.date}
+                    className={`h-7 rounded-md flex items-center justify-center text-[10px] font-bold transition-all ${
+                      day.active
+                        ? "bg-accent text-white shadow-sm"
+                        : "bg-slate-100 text-slate-400 border border-slate-200/60"
+                    }`}
                   >
-                    <div>
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-xl bg-slate-100 border border-border flex items-center justify-center font-bold text-sm text-secondary">
-                            {job.companyName?.[0] || "C"}
-                          </div>
-                          <div>
-                            <h3 className="text-base font-bold text-text-primary hover:text-primary">
-                              <Link href={`/jobs/${job._id}`}>{job.role}</Link>
-                            </h3>
-                            <div className="flex items-center gap-2 text-xs text-text-secondary mt-0.5">
-                              <span className="font-semibold text-text-primary">{job.companyName}</span>
-                              <span>•</span>
-                              <span className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {job.location}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <Badge variant="primary" size="sm">
-                          {job.jobType}
-                        </Badge>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1.5 mt-3">
-                        {job.skills?.slice(0, 4).map((skill: string) => (
-                          <Badge key={skill} variant="outline" size="sm">
-                            {skill}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-3 border-t border-border">
-                      <span className="text-xs font-bold text-secondary">
-                        {formatSalaryRange(job.salaryRange)}
-                      </span>
-                      <Link href={`/jobs/${job._id}`}>
-                        <Button size="sm" variant="outline" className="text-xs h-8">
-                          View Details
-                        </Button>
-                      </Link>
-                    </div>
+                    {i + 1}
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        </div>
-      )}
 
-      {/* Account Deletion Request Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="h-10 w-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
-                <AlertTriangle className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-text-primary">Request Account Deletion</h3>
-                <p className="text-xs text-text-secondary mt-1">
-                  Are you sure you want to request account deletion? This action will permanently remove your profile, applications, and account access.
-                </p>
+              {/* Accuracy & Solved Progress Stats */}
+              <div className="grid grid-cols-3 gap-2 pt-1 text-center text-[11px]">
+                <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
+                  <div className="font-black text-secondary text-sm">{totalMcqSolved}</div>
+                  <div className="text-slate-600 text-[10px]">Questions Solved</div>
+                </div>
+                <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                  <div className="font-black text-emerald-700 text-sm">{mcqAccuracy}%</div>
+                  <div className="text-emerald-800 text-[10px]">Accuracy Rate</div>
+                </div>
+                <div className="p-2 rounded-lg bg-blue-50 border border-blue-100">
+                  <div className="font-black text-primary text-sm">{xp}</div>
+                  <div className="text-blue-800 text-[10px]">Skill XP</div>
+                </div>
               </div>
             </div>
+          </div>
 
+          {/* Today's Question Status Badge */}
+          <div className="pt-3 border-t border-border mt-3 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold text-text-secondary">Today&apos;s Challenge:</span>
+              {todayQuestion?.hasAttempted ? (
+                <Badge variant="success" size="sm" className="text-[10px] gap-1 font-bold">
+                  <Check className="h-3 w-3" /> Attempted
+                </Badge>
+              ) : (
+                <Badge variant="warning" size="sm" className="text-[10px] gap-1 font-bold">
+                  <Clock className="h-3 w-3" /> Awaiting Submission
+                </Badge>
+              )}
+            </div>
+            <Link href="/mcq">
+              <Button size="sm" variant="outline" className="h-7 text-[11px] px-2.5 font-bold">
+                {todayQuestion?.hasAttempted ? "Review Solution" : "Answer Now"}
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Embedded Resume Upload & ATS Section (Inside Dashboard) */}
+      <div className="rounded-xl border border-border bg-white p-4 shadow-sm space-y-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-border pb-2.5">
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <UploadCloud className="h-4 w-4" />
+            </div>
             <div>
-              <label className="block text-xs font-semibold text-text-primary mb-1">
-                Reason for leaving (Optional)
-              </label>
-              <textarea
-                value={deletionReason}
-                onChange={(e) => setDeletionReason(e.target.value)}
-                placeholder="Let us know how we can improve..."
-                className="w-full rounded-xl border border-border p-3 text-xs focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[80px]"
-              />
+              <h2 className="text-sm font-bold text-text-primary">Resume Management &amp; ATS Score</h2>
+              <p className="text-[11px] text-text-secondary">
+                Upload your latest PDF resume to update ATS score, skills, and candidate profile
+              </p>
             </div>
+          </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setDeletionReason("");
-                }}
-                disabled={deletionProcessing}
-              >
-                Cancel
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                if (profile) printOrDownloadAtsResume(profile);
+              }}
+              className="h-8 text-xs font-bold gap-1.5 border-blue-200 text-primary hover:bg-blue-50"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span>Download ATS Resume (PDF)</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowAtsModal(true)}
+              className="h-8 text-xs font-semibold gap-1 text-text-secondary hover:text-text-primary"
+            >
+              <Eye className="h-3.5 w-3.5" />
+              <span>Preview</span>
+            </Button>
+            <Link href="/profile">
+              <Button size="sm" variant="outline" className="h-8 text-xs font-semibold">
+                Edit Details
               </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleSubmitDeletionRequest}
-                isLoading={deletionProcessing}
-                className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
-              >
-                Submit Deletion Request
-              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {uploadSuccess && (
+          <div className="flex items-center gap-2 rounded-lg bg-emerald-50 p-2.5 text-xs text-emerald-800 border border-emerald-200">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+            <span>{uploadSuccess}</span>
+          </div>
+        )}
+
+        {uploadError && (
+          <div className="flex items-center gap-2 rounded-lg bg-rose-50 p-2.5 text-xs text-rose-800 border border-rose-200">
+            <span className="font-bold">Error:</span>
+            <span>{uploadError}</span>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+          {/* Resume Upload Dropzone */}
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (e.dataTransfer.files?.[0]) {
+                handleResumeFile(e.dataTransfer.files[0]);
+              }
+            }}
+            className="md:col-span-2 border-2 border-dashed border-slate-300 hover:border-primary rounded-xl p-4 text-center cursor-pointer transition-colors bg-slate-50/50 hover:bg-blue-50/20 group flex flex-col sm:flex-row items-center justify-center gap-3.5"
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,application/pdf"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.[0]) {
+                  handleResumeFile(e.target.files[0]);
+                }
+              }}
+            />
+            <div className="h-10 w-10 rounded-xl bg-blue-50 group-hover:bg-primary group-hover:text-white text-primary flex items-center justify-center transition-colors shrink-0">
+              <UploadCloud className="h-5 w-5" />
+            </div>
+            <div className="text-left">
+              <div className="text-xs font-bold text-text-primary group-hover:text-primary">
+                {uploadingResume ? "Processing Resume..." : "Click or drag & drop to update PDF Resume"}
+              </div>
+              <div className="text-[11px] text-text-secondary mt-0.5">
+                {uploadStatus || "PDF format supported • Automated AI skill and experience extraction"}
+              </div>
+            </div>
+          </div>
+
+          {/* Current Resume Info Card */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">
+                Current Resume
+              </span>
+              <Badge variant={profile?.resumeUrl ? "success" : "outline"} size="sm" className="text-[10px]">
+                {profile?.resumeUrl ? "Uploaded" : "No File"}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary shrink-0" />
+              <span className="text-xs font-semibold text-text-primary truncate">
+                {profile?.resumeName || (profile?.resumeUrl ? "Candidate_Resume.pdf" : "Upload to verify")}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-text-secondary pt-1 border-t border-slate-200/60">
+              <span>ATS Readiness:</span>
+              <span className="font-bold text-emerald-700">{completeness}% Complete</span>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Recommended Jobs Section */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base sm:text-lg font-bold tracking-tight text-secondary">
+              Recommended Job Matches
+            </h2>
+            <p className="text-[11px] text-text-secondary">
+              Matched for your skill profile: {profile?.skills?.slice(0, 5).join(", ") || "Full Stack Engineer"}
+            </p>
+          </div>
+          <Link href="/jobs" className="text-xs font-semibold text-primary hover:underline flex items-center gap-0.5">
+            <span>Browse all jobs</span>
+            <ChevronRight className="h-3 w-3" />
+          </Link>
+        </div>
+
+        {jobs.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border bg-white p-6 text-center text-xs text-text-secondary shadow-sm">
+            No active jobs match currently. Check back soon or refine your profile skills!
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {jobs.slice(0, 4).map((job) => (
+              <div
+                key={job._id}
+                className="rounded-xl border border-border bg-white p-3.5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between space-y-3"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-9 w-9 rounded-lg bg-slate-100 border border-border flex items-center justify-center font-bold text-xs text-secondary shrink-0">
+                        {job.companyName?.[0] || "C"}
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-text-primary hover:text-primary leading-tight">
+                          <Link href={`/jobs/${job._id}`}>{job.role}</Link>
+                        </h3>
+                        <div className="flex items-center gap-1.5 text-[11px] text-text-secondary mt-0.5">
+                          <span className="font-semibold text-text-primary">{job.companyName}</span>
+                          <span>•</span>
+                          <span className="flex items-center gap-0.5">
+                            <MapPin className="h-3 w-3" />
+                            {job.location}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <Badge variant="primary" size="sm" className="text-[10px] shrink-0">
+                      {job.jobType}
+                    </Badge>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1 mt-2.5">
+                    {job.skills?.slice(0, 4).map((skill: string) => (
+                      <Badge key={skill} variant="outline" size="sm" className="text-[10px] py-0 px-1.5">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-border text-xs">
+                  <span className="font-bold text-secondary text-[11px]">
+                    {formatSalaryRange(job.salaryRange)}
+                  </span>
+                  <Link href={`/jobs/${job._id}`}>
+                    <Button size="sm" variant="outline" className="text-[11px] h-7 px-2.5">
+                      View Position
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ATS Resume Modal for Preview */}
+      {showAtsModal && profile && (
+        <AtsResumeModal
+          isOpen={showAtsModal}
+          onClose={() => setShowAtsModal(false)}
+          profile={profile}
+        />
       )}
     </div>
   );

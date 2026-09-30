@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { printOrDownloadAtsResume } from "@/lib/ats-resume";
 
 interface AtsResumeModalProps {
   isOpen: boolean;
@@ -93,7 +94,7 @@ export function AtsResumeModal({ isOpen, onClose, profile }: AtsResumeModalProps
   const candidateSocialLinks = profile.socialLinks || {};
 
   const handlePrint = () => {
-    window.print();
+    printOrDownloadAtsResume(profile);
   };
 
   const handleDownloadTxt = () => {

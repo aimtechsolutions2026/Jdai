@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { McqRepository, ProfileRepository } from "@/lib/repositories";
+import { McqRepository, ProfileRepository, DailyAttemptRepository } from "@/lib/repositories";
 import { redis } from "@/lib/redis";
 import { createNotification } from "@/lib/notifications";
 
@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 5. Store Redis flag for 24h
+    // 5. Store Redis flag for 24h & persist attempt
     const attemptRecord = {
       isCorrect,
       selectedIndex,
@@ -101,6 +101,18 @@ export async function POST(req: NextRequest) {
       date: todayStr,
     };
     await redis.set(cacheKey, JSON.stringify(attemptRecord), { ex: 86400 });
+
+    try {
+      await DailyAttemptRepository.recordAttempt({
+        userId: session.userId,
+        date: todayStr,
+        questionId: String(question._id),
+        selectedOption: Number(selectedIndex),
+        isCorrect,
+      });
+    } catch (attErr) {
+      console.warn("Failed to persist daily attempt record:", attErr);
+    }
 
     return NextResponse.json({
       success: true,

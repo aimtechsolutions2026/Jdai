@@ -20,6 +20,7 @@ import {
   HelpCircle,
   ShieldCheck,
   Bell,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -142,16 +143,6 @@ export function Navbar() {
                   }`}
                 >
                   My Applications
-                </Link>
-                <Link
-                  href="/resume-center"
-                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    pathname === "/resume-center"
-                      ? "text-primary bg-blue-50/60 font-semibold"
-                      : "text-text-secondary hover:text-text-primary hover:bg-slate-50"
-                  }`}
-                >
-                  Resume Center
                 </Link>
               </>
             )}
@@ -343,12 +334,12 @@ export function Navbar() {
                       </Link>
 
                       <Link
-                        href="/resume-center"
+                        href="/settings"
                         onClick={() => setProfileDropdownOpen(false)}
                         className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg text-text-primary hover:bg-surface-alt hover:text-primary transition-colors"
                       >
-                        <FileCheck2 className="h-4 w-4 text-text-secondary" />
-                        <span>ATS Resume Center</span>
+                        <Settings className="h-4 w-4 text-text-secondary" />
+                        <span>Account Settings</span>
                       </Link>
 
                       <Link
@@ -560,12 +551,12 @@ export function Navbar() {
                     <span>My Applications</span>
                   </Link>
                   <Link
-                    href="/resume-center"
+                    href="/settings"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
                   >
-                    <FileCheck2 className="h-4 w-4 text-text-secondary" />
-                    <span>ATS Resume Center</span>
+                    <Settings className="h-4 w-4 text-text-secondary" />
+                    <span>Account Settings</span>
                   </Link>
                   <Link
                     href="/profile"

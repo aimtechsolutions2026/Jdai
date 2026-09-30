@@ -20,17 +20,19 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { DEFAULT_COUNTRY_CODE } from "@/lib/country-codes";
 import { CodifyProLogo } from "@/components/layout/CodifyProLogo";
 
 function SignUpForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const initialRole = (searchParams.get("role") as "seeker" | "recruiter") || "seeker";
-
-  const [role, setRole] = useState<"seeker" | "recruiter">(initialRole);
+  // const initialRole = (searchParams.get("role") as "seeker" | "recruiter") || "seeker";
+  const [role] = useState<"seeker">("seeker");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_CODE);
   const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -52,11 +54,13 @@ function SignUpForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setPhoneError(null);
 
-    // 1. Check phone number (required & at least 8 digits)
+    // 1. Check phone number (required & exactly 10 digits)
     const cleanPhone = phone.replace(/[^0-9]/g, "");
-    if (cleanPhone.length < 8) {
-      setError("Please enter a valid mobile / phone number (at least 8 digits).");
+    if (cleanPhone.length !== 10) {
+      setError("Please enter a valid 10-digit mobile number.");
+      setPhoneError("Phone number must be exactly 10 digits");
       return;
     }
 
@@ -83,12 +87,13 @@ function SignUpForm() {
     setLoading(true);
 
     try {
+      const fullPhone = `${countryCode} ${cleanPhone}`.trim();
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: email.trim(),
-          phone: phone.trim(),
+          phone: fullPhone,
           password,
           name: name.trim() || email.split("@")[0] || "Candidate",
           role,
@@ -98,7 +103,6 @@ function SignUpForm() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to create account");
         throw new Error(data.message || data.error || "Failed to create account");
       }
 
@@ -134,7 +138,8 @@ function SignUpForm() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-6 shadow-card rounded-2xl border border-border sm:px-10">
-          {/* Role selector pill */}
+          {/* Role selector pill - temporarily commented out, only seeker signup for now */}
+          {/*
           <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl bg-surface-alt p-1.5 border border-border">
             <button
               type="button"
@@ -161,6 +166,7 @@ function SignUpForm() {
               <span>Recruiter / Hiring</span>
             </button>
           </div>
+          */}
 
           {error && (
             <div
@@ -219,18 +225,23 @@ function SignUpForm() {
               />
             </div>
 
-            {/* Phone Number (Required) */}
+            {/* Phone Number (Required with 20% Country Code & 10 Digits) */}
             <div>
               <label className="block text-xs font-semibold text-text-primary uppercase tracking-wider mb-1.5">
-                Phone Number
+                Phone Number <span className="text-error">*</span>
               </label>
-              <Input
-                type="tel"
-                required
+              <PhoneInput
+                countryCode={countryCode}
+                onCountryCodeChange={setCountryCode}
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Enter phone number"
-                icon={<Phone className="h-4 w-4" />}
+                onChange={(val) => {
+                  setPhone(val);
+                  if (phoneError) setPhoneError(null);
+                  if (error && error.includes("phone")) setError(null);
+                }}
+                error={phoneError}
+                required
+                id="signup-phone"
               />
             </div>
 
