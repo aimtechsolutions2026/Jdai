@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { UserRepository } from "@/lib/repositories";
-import { sendPasswordResetEmail } from "@/lib/brevo";
+import { sendNewPasswordEmail } from "@/lib/brevo";
+import { hashPassword } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,33 +20,38 @@ export async function POST(req: NextRequest) {
     const user = await UserRepository.findByEmail(cleanEmail);
 
     if (user) {
-      const resetToken = crypto.randomBytes(32).toString("hex");
-      const resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
+      // Generate a clean, secure new password that meets validation rules:
+      // (at least 8 chars, uppercase, lowercase, number, symbol)
+      const randomSuffix = crypto.randomBytes(3).toString("hex").toUpperCase();
+      const newPassword = `Codify#${randomSuffix}9`;
+
+      const passwordHash = await hashPassword(newPassword);
 
       await UserRepository.updateUser(String(user._id), {
-        resetPasswordToken: resetToken,
-        resetPasswordExpires,
+        passwordHash,
+        resetPasswordToken: undefined,
+        resetPasswordExpires: undefined,
       });
 
       const origin =
         process.env.NEXT_PUBLIC_APP_URL ||
         req.headers.get("origin") ||
         "http://localhost:3000";
-      const resetUrl = `${origin}/reset-password?token=${resetToken}`;
+      const loginUrl = `${origin}/login`;
 
-      await sendPasswordResetEmail(user.email, resetUrl, user.name);
+      await sendNewPasswordEmail(user.email, newPassword, loginUrl, user.name);
     }
 
     // Always respond with success to prevent user email enumeration
     return NextResponse.json({
       success: true,
       message:
-        "If an account with that email exists, a password reset link has been sent. Please check your inbox.",
+        "If your email is registered in our platform, you will get a new password in your email to login.",
     });
   } catch (err: any) {
     console.error("[FORGOT PASSWORD ERROR]", err);
     return NextResponse.json(
-      { error: "Failed to process password reset request. Please try again later." },
+      { error: "Failed to process password request. Please try again later." },
       { status: 500 }
     );
   }

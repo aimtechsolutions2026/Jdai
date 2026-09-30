@@ -40,9 +40,27 @@ export async function verifyToken(token: string): Promise<TokenPayload | null> {
   }
 }
 
-export async function getSessionUser(): Promise<TokenPayload | null> {
-  const cookieStore = cookies();
-  const token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
+export async function getSessionUser(req?: Request): Promise<TokenPayload | null> {
+  let token: string | undefined;
+  if (req) {
+    try {
+      const cookieHeader = req.headers.get("cookie") || "";
+      const match = cookieHeader.match(new RegExp(`(?:^|; )${AUTH_COOKIE_NAME}=([^;]*)`));
+      if (match) {
+        token = decodeURIComponent(match[1]);
+      }
+    } catch {
+      // ignore
+    }
+  }
+  if (!token) {
+    try {
+      const cookieStore = cookies();
+      token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
+    } catch {
+      // ignore
+    }
+  }
   if (!token) return null;
   return verifyToken(token);
 }
