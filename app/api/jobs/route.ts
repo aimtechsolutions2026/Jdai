@@ -37,6 +37,13 @@ export async function GET(req: NextRequest) {
       limit,
     });
 
+    // Exclude applyUrl from jobs list response so unauthenticated viewers and list endpoints do not expose direct apply links
+    const sanitizedJobs = (jobs || []).map((job: any) => {
+      const jobObj = job.toObject ? job.toObject() : { ...job };
+      delete jobObj.applyUrl;
+      return jobObj;
+    });
+
     return NextResponse.json(
       {
         success: true,
@@ -45,7 +52,7 @@ export async function GET(req: NextRequest) {
         limit,
         totalPages,
         hasMore,
-        jobs,
+        jobs: sanitizedJobs,
       },
       {
         headers: {

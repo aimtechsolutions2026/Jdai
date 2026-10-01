@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   Bell,
   Settings,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -225,6 +226,16 @@ export function Navbar() {
                   }`}
                 >
                   Users
+                </Link>
+                <Link
+                  href="/admin/content"
+                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    pathname === "/admin/content"
+                      ? "text-primary bg-blue-50/60 font-semibold"
+                      : "text-text-secondary hover:text-text-primary hover:bg-slate-50"
+                  }`}
+                >
+                  Website Content
                 </Link>
               </>
             )}
@@ -468,6 +479,14 @@ export function Navbar() {
                   >
                     <Users className="h-4 w-4 text-text-secondary" />
                     <span>User Directory</span>
+                  </Link>
+                  <Link
+                    href="/admin/content"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-surface-alt"
+                  >
+                    <Globe className="h-4 w-4 text-text-secondary" />
+                    <span>Website Content</span>
                   </Link>
                   <Link
                     href="/jobs"
