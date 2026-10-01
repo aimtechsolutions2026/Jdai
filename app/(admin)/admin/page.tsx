@@ -28,6 +28,7 @@ import {
   DollarSign,
   Building2,
   Filter,
+  Globe,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -542,6 +543,12 @@ export default function AdminDashboardPage() {
             <Plus className="h-3.5 w-3.5" />
             <span>Add MCQ</span>
           </Button>
+          <Link href="/admin/content">
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs font-semibold">
+              <Globe className="h-3.5 w-3.5 text-blue-600" />
+              <span>Website Content</span>
+            </Button>
+          </Link>
           <Link href="/admin/ingest">
             <Button size="sm" variant="primary" className="gap-1.5 text-xs font-semibold shadow-sm">
               <Sparkles className="h-3.5 w-3.5" />
@@ -774,6 +781,16 @@ export default function AdminDashboardPage() {
                   >
                     <Sparkles className="h-4 w-4 text-indigo-600" />
                     <span>Run AI Job Ingestion</span>
+                  </Button>
+                </Link>
+                <Link href="/admin/content" className="block">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start gap-2 text-xs"
+                  >
+                    <Globe className="h-4 w-4 text-blue-600" />
+                    <span>Manage Website Content (CMS)</span>
                   </Button>
                 </Link>
                 <Button
