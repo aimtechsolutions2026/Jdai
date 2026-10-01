@@ -373,9 +373,9 @@ export default function JobDetailClient({ jobId: initialJobId }: { jobId?: strin
                   <CheckCircle2 className="h-4 w-4 shrink-0" />
                   <span>Resume tailored with 98% keyword match!</span>
                 </div>
-                <Link href="/resume-center">
+                <Link href="/profile">
                   <Button variant="primary" size="sm" className="w-full text-xs">
-                    View in Resume Center
+                    View in Candidate Profile
                   </Button>
                 </Link>
               </div>

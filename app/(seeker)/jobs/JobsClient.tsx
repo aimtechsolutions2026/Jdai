@@ -18,6 +18,7 @@ import {
   Check,
   Lock,
   LogIn,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -518,21 +519,13 @@ export default function JobsClient() {
 
                     {/* Card Actions */}
                     <div className="flex items-center justify-between pt-3 border-t border-border">
-                      <Link href={`/jobs/${job._id}`}>
-                        <Button variant="ghost" size="sm" className="text-xs">
-                          View Job Details →
-                        </Button>
-                      </Link>
+                      <div className="text-xs text-text-muted flex items-center gap-1.5">
+                        <Briefcase className="h-3.5 w-3.5 text-text-muted" />
+                        <span>{job.applyMode === "external" ? "Direct Posting" : "Easy Apply via Platform"}</span>
+                      </div>
 
                       <div className="flex items-center gap-2">
-                        {job.applyMode === "external" && job.applyUrl ? (
-                          <a href={job.applyUrl} target="_blank" rel="noreferrer">
-                            <Button variant="outline" size="sm" className="text-xs gap-1">
-                              <span>External Apply</span>
-                              <ExternalLink className="h-3 w-3" />
-                            </Button>
-                          </a>
-                        ) : isApplied ? (
+                        {isApplied ? (
                           <Button
                             variant="outline"
                             size="sm"
@@ -542,12 +535,23 @@ export default function JobsClient() {
                             <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
                             <span>Applied</span>
                           </Button>
+                        ) : !currentUser || job.applyMode === "external" ? (
+                          <Link href={`/jobs/${job._id}`}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs gap-1 font-semibold border-border hover:border-primary hover:text-primary"
+                            >
+                              <span>View Job</span>
+                              <ArrowRight className="h-3 w-3" />
+                            </Button>
+                          </Link>
                         ) : (
                           <Button
                             variant="primary"
                             size="sm"
-                            className="text-xs"
-                            onClick={() => setApplyingJob(job)}
+                            className="text-xs font-semibold"
+                            onClick={() => handleStartApply(job)}
                           >
                             Easy Apply
                           </Button>

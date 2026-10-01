@@ -11,11 +11,21 @@ export async function GET(
     if (!job) {
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }
+    const session = await getSessionUser(req);
+    const jobData = job.toObject ? job.toObject() : { ...job };
+
+    // If user is not logged in, omit the apply link
+    if (!session) {
+      delete jobData.applyUrl;
+    }
+
     return NextResponse.json(
-      { success: true, job },
+      { success: true, job: jobData },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+          "Cache-Control": session
+            ? "private, no-cache, no-store"
+            : "public, s-maxage=60, stale-while-revalidate=300",
         },
       }
     );
