@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { IngestionJobRepository } from "@/lib/repositories";
-import { processJdPasteJob } from "@/lib/ingestion-worker";
+import { extractJobWithGroq } from "@/lib/groq";
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,20 +30,30 @@ export async function POST(req: NextRequest) {
 
     const jobId = String(job._id);
 
-    // 2. Trigger asynchronous background worker (fire-and-forget)
-    processJdPasteJob(jobId, text).catch((err) => {
-      console.error(`[IngestPaste] Background worker error for job ${jobId}:`, err);
+    // 2. Perform extraction directly (Groq LLM + heuristic fallback)
+    const extracted = await extractJobWithGroq(text);
+
+    // 3. Update IngestionJob to completed status
+    await IngestionJobRepository.update(jobId, {
+      status: "completed",
+      result: {
+        extracted,
+      },
     });
 
-    // 3. Return immediately with HTTP 202 Accepted
+    // 4. Return immediately with completed status and extracted payload
     return NextResponse.json(
       {
         success: true,
         jobId,
-        status: "processing",
-        message: "Job description accepted. Automated extraction is running in the background.",
+        status: "completed",
+        extracted,
+        result: {
+          extracted,
+        },
+        message: "Job description extracted successfully.",
       },
-      { status: 202 }
+      { status: 200 }
     );
   } catch (error: any) {
     console.error("Paste ingestion error:", error);
@@ -53,3 +63,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
