@@ -30,12 +30,25 @@ export async function POST(req: NextRequest) {
 
     const jobId = String(job._id);
 
-    // 2. Trigger asynchronous background worker (fire-and-forget)
-    processJdLinkJob(jobId, url).catch((err) => {
-      console.error(`[IngestLink] Background worker error for job ${jobId}:`, err);
-    });
+    // 2. Perform link extraction directly
+    try {
+      await processJdLinkJob(jobId, url);
+      const updated = await IngestionJobRepository.findById(jobId);
+      if (updated && updated.status === "completed" && updated.result?.extracted) {
+        return NextResponse.json({
+          success: true,
+          jobId,
+          status: "completed",
+          extracted: updated.result.extracted,
+          result: updated.result,
+          message: "Job extracted from URL successfully.",
+        });
+      }
+    } catch (e) {
+      console.warn("[IngestLink] Direct link extraction fell back to background:", e);
+    }
 
-    // 3. Return immediately with HTTP 202 Accepted
+    // 3. Fallback to 202 if taking longer
     return NextResponse.json(
       {
         success: true,

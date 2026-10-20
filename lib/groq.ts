@@ -10,6 +10,19 @@ const groqApiKey = process.env.GROQ_API_KEY;
 const groq = groqApiKey ? new Groq({ apiKey: groqApiKey }) : null;
 const AI_MODEL = process.env.AI_MODEL || "llama-3.3-70b-versatile";
 
+export const COMMON_TECH_SKILLS = [
+  "TypeScript", "JavaScript", "Python", "Java", "C++", "C#", "C", "Go", "Golang", "Rust", "Ruby",
+  "PHP", "Swift", "Kotlin", "Dart", "R", "SQL", "HTML5", "CSS3", "HTML", "CSS",
+  "React", "React.js", "React Native", "Next.js", "Vue", "Vue.js", "Angular", "Node.js", "Express",
+  "Express.js", "NestJS", "Django", "Flask", "FastAPI", "Spring", "Spring Boot", "ASP.NET",
+  "Tailwind CSS", "Tailwind", "Bootstrap", "Redux", "GraphQL", "REST APIs", "Microservices", "WebSockets",
+  "PostgreSQL", "MySQL", "MongoDB", "Redis", "SQLite", "Oracle", "Cassandra", "DynamoDB", "Firebase",
+  "Supabase", "Prisma", "Mongoose", "AWS", "Azure", "GCP", "Google Cloud", "Docker", "Kubernetes",
+  "CI/CD", "Jenkins", "GitHub Actions", "Terraform", "Linux", "Git", "GitHub", "GitLab",
+  "Machine Learning", "Deep Learning", "TensorFlow", "PyTorch", "Scikit-Learn", "NLP", "Pandas", "NumPy",
+  "Jest", "Cypress", "Postman", "Kafka", "RabbitMQ", "Figma", "Jira", "Agile", "Scrum"
+];
+
 // ============================================================================
 // HEURISTIC RESUME PARSER (Always available, robust fallback engine)
 // ============================================================================
@@ -77,21 +90,9 @@ export function fallbackResumeParser(text: string): ResumeParsedData {
   }
 
   // 8. Technical Skills (Comprehensive catalog of 130+ modern skills)
-  const commonSkills = [
-    "TypeScript", "JavaScript", "Python", "Java", "C++", "C#", "C", "Go", "Golang", "Rust", "Ruby",
-    "PHP", "Swift", "Kotlin", "Dart", "R", "SQL", "HTML5", "CSS3", "HTML", "CSS",
-    "React", "React.js", "React Native", "Next.js", "Vue", "Vue.js", "Angular", "Node.js", "Express",
-    "Express.js", "NestJS", "Django", "Flask", "FastAPI", "Spring", "Spring Boot", "ASP.NET",
-    "Tailwind CSS", "Tailwind", "Bootstrap", "Redux", "GraphQL", "REST APIs", "Microservices", "WebSockets",
-    "PostgreSQL", "MySQL", "MongoDB", "Redis", "SQLite", "Oracle", "Cassandra", "DynamoDB", "Firebase",
-    "Supabase", "Prisma", "Mongoose", "AWS", "Azure", "GCP", "Google Cloud", "Docker", "Kubernetes",
-    "CI/CD", "Jenkins", "GitHub Actions", "Terraform", "Linux", "Git", "GitHub", "GitLab",
-    "Machine Learning", "Deep Learning", "TensorFlow", "PyTorch", "Scikit-Learn", "NLP", "Pandas", "NumPy",
-    "Jest", "Cypress", "Postman", "Kafka", "RabbitMQ", "Figma", "Jira", "Agile", "Scrum"
-  ];
   const detectedSkills = Array.from(
     new Set(
-      commonSkills.filter((s) => new RegExp(`\\b${s.replace(/\+/g, "\\+")}\\b`, "i").test(cleanText))
+      COMMON_TECH_SKILLS.filter((s) => new RegExp(`\\b${s.replace(/\+/g, "\\+")}\\b`, "i").test(cleanText))
     )
   );
 
@@ -392,43 +393,261 @@ ${resumeRawText.slice(0, 14000)}`;
 }
 
 // ============================================================================
-// JOB POSTING EXTRACTION (AI INGESTION)
+// HEURISTIC JOB DESCRIPTION PARSER (High-accuracy rule-based extraction)
 // ============================================================================
-export async function extractJobWithGroq(jobText: string): Promise<JobExtractedData> {
+export function fallbackJobParser(jobText: string): JobExtractedData {
+  const cleanText = (jobText || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const lines = cleanText.split("\n").map((l) => l.trim()).filter(Boolean);
+
+  // 1. Inferred Company
+  let companyName = "";
+  for (const line of lines) {
+    const compMatch = line.match(/^(?:Company(?:\s*Name)?|Organization|Employer|Client)\s*[:\-]\s*(.+)$/i);
+    if (compMatch) {
+      companyName = compMatch[1].trim();
+      break;
+    }
+  }
+  if (!companyName) {
+    const aboutMatch = cleanText.match(/\b(?:About|Join|Welcome\s+to|At)\s+([A-Z][A-Za-z0-9&.\s]{1,30}?)(?:\s+(?:is|are|we|team|has|technologies|solutions|\.|\n|,))/);
+    if (aboutMatch && !/the|our|this|a|an/i.test(aboutMatch[1].trim())) {
+      companyName = aboutMatch[1].trim();
+    }
+  }
+  if (!companyName) {
+    const domainMatch = cleanText.match(/https?:\/\/(?:careers\.|jobs\.|www\.)?([a-zA-Z0-9-]+)\.(?:com|io|co|in|org|ai|tech|app)/i);
+    if (domainMatch && !["lever", "greenhouse", "workday", "google", "linkedin", "naukri", "indeed", "github"].includes(domainMatch[1].toLowerCase())) {
+      companyName = domainMatch[1].charAt(0).toUpperCase() + domainMatch[1].slice(1);
+    }
+  }
+  if (!companyName) {
+    for (let i = 0; i < Math.min(3, lines.length); i++) {
+      const line = lines[i];
+      if (/^[A-Z][A-Za-z0-9&.\s]{2,30}$/.test(line) && !/engineer|developer|role|job|hiring|description|experience|salary/i.test(line)) {
+        companyName = line;
+        break;
+      }
+    }
+  }
+  if (!companyName) {
+    companyName = "Tech Venture";
+  }
+
+  // 2. Inferred Role
+  let role = "";
+  for (const line of lines) {
+    const roleMatch = line.match(/^(?:Role|Job\s*Title|Title|Position|Opening|Designation)\s*[:\-]\s*(.+)$/i);
+    if (roleMatch) {
+      role = roleMatch[1].trim();
+      break;
+    }
+  }
+  if (!role) {
+    const techRoleRegex = /\b(?:Senior|Lead|Staff|Principal|Junior|Associate)?\s*(?:Full[\s-]Stack|Frontend|Backend|Mobile|DevOps|Site Reliability|SRE|Cloud|Platform|Data|Machine Learning|AI|Security|QA|Android|iOS|Software)?\s*(?:Engineer|Developer|Architect|Specialist|Scientist|Lead)\b/i;
+    for (let i = 0; i < Math.min(6, lines.length); i++) {
+      const line = lines[i];
+      const match = line.match(techRoleRegex);
+      if (match) {
+        role = line.length <= 60 ? line : match[0];
+        break;
+      }
+    }
+  }
+  if (!role) {
+    role = lines[0] && lines[0].length <= 50 ? lines[0] : "Senior Full-Stack Engineer";
+  }
+
+  // 3. Indian context & Currency detection
   const isIndianContext =
-    /(?:₹|inr|rs\.?|lpa|lakhs?|ctc|india|bengaluru|bangalore|hyderabad|pune|mumbai|delhi|noida|gurgaon)/i.test(
-      jobText
+    /(?:₹|inr|rs\.?|lpa|lacs?|lakhs?|ctc|india|bengaluru|bangalore|hyderabad|pune|mumbai|delhi|noida|gurgaon|gurugram|chennai)/i.test(
+      cleanText
     );
 
+  // 4. Salary Range
+  let minSalary = 0;
+  let maxSalary = 0;
+  let currency: "INR" | "USD" | "EUR" | "GBP" = isIndianContext ? "INR" : "USD";
+
+  // LPA range: "18 - 28 LPA", "18-28 lpa", "20 to 30 LPA", "15.5 - 25 LPA"
+  const lpaRange = cleanText.match(/(\d+(?:\.\d+)?)\s*(?:-|to)\s*(\d+(?:\.\d+)?)\s*(?:LPA|lpa|Lacs?|Lakhs?|CTC)/i);
+  if (lpaRange) {
+    minSalary = Math.round(parseFloat(lpaRange[1]) * 100000);
+    maxSalary = Math.round(parseFloat(lpaRange[2]) * 100000);
+    currency = "INR";
+  } else {
+    // Single LPA: "25 LPA", "20 Lakhs"
+    const singleLpa = cleanText.match(/(\d+(?:\.\d+)?)\s*(?:LPA|lpa|Lacs?|Lakhs?)/i);
+    if (singleLpa) {
+      const val = Math.round(parseFloat(singleLpa[1]) * 100000);
+      minSalary = Math.round(val * 0.85);
+      maxSalary = val;
+      currency = "INR";
+    }
+  }
+
+  if (minSalary === 0) {
+    // USD $k range: "$140k - $180k"
+    const usdKRange = cleanText.match(/\$\s*(\d+)\s*(?:k|K)\s*(?:-|to)\s*\$?\s*(\d+)\s*(?:k|K)/i);
+    if (usdKRange) {
+      minSalary = parseInt(usdKRange[1], 10) * 1000;
+      maxSalary = parseInt(usdKRange[2], 10) * 1000;
+      currency = "USD";
+    } else {
+      // USD full numbers: "$130,000 - $170,000"
+      const usdFullRange = cleanText.match(/\$\s*(\d{2,3}(?:,\d{3})+)\s*(?:-|to)\s*\$?\s*(\d{2,3}(?:,\d{3})+)/);
+      if (usdFullRange) {
+        minSalary = parseInt(usdFullRange[1].replace(/,/g, ""), 10);
+        maxSalary = parseInt(usdFullRange[2].replace(/,/g, ""), 10);
+        currency = "USD";
+      }
+    }
+  }
+
+  if (minSalary === 0) {
+    // Rupee symbol: "₹15,00,000 - ₹22,00,000"
+    const inrRupeeRange = cleanText.match(/(?:₹|INR|Rs\.?)\s*(\d{1,2}(?:,\d{2})*(?:,\d{3})?|\d{5,8})\s*(?:-|to)\s*(?:₹|INR|Rs\.?)?\s*(\d{1,2}(?:,\d{2})*(?:,\d{3})?|\d{5,8})/i);
+    if (inrRupeeRange) {
+      minSalary = parseInt(inrRupeeRange[1].replace(/,/g, ""), 10);
+      maxSalary = parseInt(inrRupeeRange[2].replace(/,/g, ""), 10);
+      currency = "INR";
+    }
+  }
+
+  // Default salary if none found in text
+  if (minSalary === 0 && maxSalary === 0) {
+    if (isIndianContext) {
+      minSalary = 1600000;
+      maxSalary = 2600000;
+      currency = "INR";
+    } else {
+      minSalary = 130000;
+      maxSalary = 180000;
+      currency = "USD";
+    }
+  }
+
+  // 5. Experience
+  let minExp = 2;
+  let maxExp = 5;
+  const expRangeMatch = cleanText.match(/(?:Experience|Exp)\s*[:\-]?\s*(\d+)\s*(?:-|to)\s*(\d+)\s*(?:years?|yrs?)/i) ||
+                        cleanText.match(/(\d+)\s*(?:-|to)\s*(\d+)\s*(?:years?|yrs?)(?:\s*of\s*experience)?/i);
+  if (expRangeMatch) {
+    minExp = parseInt(expRangeMatch[1], 10);
+    maxExp = parseInt(expRangeMatch[2], 10);
+  } else {
+    const singleExp = cleanText.match(/(\d+)\+\s*(?:years?|yrs?)/i);
+    if (singleExp) {
+      minExp = parseInt(singleExp[1], 10);
+      maxExp = minExp + 3;
+    } else if (/fresher|intern|entry\s+level/i.test(cleanText)) {
+      minExp = 0;
+      maxExp = 1;
+    }
+  }
+
+  // 6. Location, City, Pincode
+  let location = "";
+  let city = "";
+  for (const line of lines) {
+    const locMatch = line.match(/^(?:Location|Job\s*Location|Work\s*Location|Base\s*Location)\s*[:\-]\s*(.+)$/i);
+    if (locMatch) {
+      location = locMatch[1].trim();
+      break;
+    }
+  }
+  const cityMatch = cleanText.match(
+    /\b(Bengaluru|Bangalore|Hyderabad|Pune|Mumbai|Delhi|New Delhi|Gurgaon|Gurugram|Noida|Chennai|Kolkata|Ahmedabad|Jaipur|Kochi|San Francisco|New York|Seattle|Austin|Boston|London|Berlin|Singapore)\b/i
+  );
+  if (cityMatch) {
+    city = cityMatch[1];
+    if (!location) {
+      const isIndianCity = /bengaluru|bangalore|hyderabad|pune|mumbai|delhi|gurgaon|gurugram|noida|chennai|kolkata|jaipur|kochi/i.test(city);
+      location = isIndianCity ? `${city}, India (Hybrid)` : `${city}, USA`;
+    }
+  }
+  if (!location) {
+    location = isIndianContext ? "Bengaluru, India (Hybrid)" : "Remote";
+  }
+
+  const pincodeMatch = cleanText.match(/\b([1-9][0-9]{5})\b/);
+  const pincode = pincodeMatch ? pincodeMatch[1] : "";
+
+  // 7. Job Type
+  let jobType: "remote" | "hybrid" | "onsite" = "hybrid";
+  if (/\b(?:remote|work\s+from\s+home|wfh|anywhere)\b/i.test(cleanText)) {
+    jobType = "remote";
+  } else if (/\b(?:onsite|on-site|office|in-office)\b/i.test(cleanText)) {
+    jobType = "onsite";
+  } else if (/\b(?:hybrid|flexible)\b/i.test(cleanText)) {
+    jobType = "hybrid";
+  }
+
+  // 8. Skills
+  const detectedSkills = Array.from(
+    new Set(
+      COMMON_TECH_SKILLS.filter((s) => new RegExp(`\\b${s.replace(/\+/g, "\\+")}\\b`, "i").test(cleanText))
+    )
+  );
+  const skills = detectedSkills.length > 0 ? detectedSkills : ["TypeScript", "React", "Node.js", "PostgreSQL"];
+
+  // 9. Apply URL & Mode
+  let applyUrl = "";
+  let applyMode: "external" | "easy-apply" = "easy-apply";
+  const urlMatch = cleanText.match(/https?:\/\/[^\s)"]+/i);
+  if (urlMatch) {
+    applyUrl = urlMatch[0];
+    applyMode = "external";
+  }
+
+  // 10. Clean JD HTML
+  let formattedJd = "";
+  if (cleanText.includes("<p>") || cleanText.includes("<h3>")) {
+    formattedJd = cleanText;
+  } else {
+    const paragraphs = cleanText.split(/\n{2,}/);
+    formattedJd = paragraphs
+      .map((p) => {
+        const trimmed = p.trim();
+        if (/^(?:about|requirements|responsibilities|qualifications|what you will do|who you are|benefits|skills required|about the role)/i.test(trimmed)) {
+          return `<h3>${trimmed}</h3>`;
+        }
+        if (trimmed.includes("\n- ") || trimmed.includes("\n* ") || trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+          const items = trimmed
+            .split(/\n(?:-|\*)\s+/)
+            .map((item) => item.replace(/^(?:-|\*)\s+/, "").trim())
+            .filter(Boolean);
+          return `<ul>${items.map((it) => `<li>${it}</li>`).join("")}</ul>`;
+        }
+        return `<p>${trimmed.replace(/\n/g, "<br/>")}</p>`;
+      })
+      .join("\n");
+  }
+
+  return {
+    companyName,
+    companyLogoUrl: "",
+    role,
+    jd: formattedJd,
+    salaryRange: { min: minSalary, max: maxSalary, currency },
+    location,
+    city,
+    pincode,
+    experienceRequired: { min: minExp, max: maxExp },
+    jobType,
+    applyUrl,
+    applyMode,
+    skills,
+  };
+}
+
+// ============================================================================
+// JOB POSTING EXTRACTION (AI INGESTION ENGINE)
+// ============================================================================
+export async function extractJobWithGroq(jobText: string): Promise<JobExtractedData> {
+  const fallback = fallbackJobParser(jobText);
+
   if (!groq) {
-    await new Promise((resolve) => setTimeout(resolve, 600));
-
-    const techSkills = [
-      "TypeScript", "React", "Next.js", "Node.js", "Python", "Java", "Go",
-      "AWS", "Docker", "Kubernetes", "PostgreSQL", "MongoDB", "Tailwind CSS", "GraphQL"
-    ].filter((s) => new RegExp(`\\b${s}\\b`, "i").test(jobText));
-
-    const lines = jobText.split("\n").map((l) => l.trim()).filter(Boolean);
-    const inferredRole = lines[0] && lines[0].length < 60 ? lines[0] : "Software Engineer";
-    const inferredCompany = lines[1] && lines[1].length < 40 ? lines[1] : "Tech Company";
-
-    return {
-      companyName: inferredCompany,
-      companyLogoUrl: "",
-      role: inferredRole,
-      jd: jobText.length > 50 ? jobText : `<p>${jobText}</p>`,
-      salaryRange: isIndianContext
-        ? { min: 1200000, max: 2000000, currency: "INR" }
-        : { min: 120000, max: 170000, currency: "USD" },
-      location: isIndianContext ? "Bengaluru, India (Hybrid)" : "Remote",
-      city: isIndianContext ? "Bengaluru" : "",
-      pincode: "",
-      experienceRequired: { min: 2, max: 5 },
-      jobType: "hybrid",
-      applyUrl: "",
-      applyMode: "easy-apply",
-      skills: techSkills.length > 0 ? techSkills : ["TypeScript", "React", "Node.js"],
-    };
+    return fallback;
   }
 
   const prompt = `You are an expert HR and recruitment AI parser.
@@ -447,7 +666,7 @@ CRITICAL INSTRUCTIONS FOR SALARY & CURRENCY:
 
 3. Extract role title, company name, location, pincode, experienceRequired (min, max in years), jobType ("remote" | "onsite" | "hybrid"), skills array, applyUrl (if external apply link found), and applyMode ("external" | "easy-apply").
 
-Output pure raw JSON only. Do not wrap in markdown or backticks.
+Output pure raw JSON only. Do not wrap in markdown codeblocks.
 
 Schema:
 {
@@ -473,44 +692,102 @@ Schema:
 }
 
 Job text:
-${jobText.slice(0, 10000)}`;
+${jobText.slice(0, 12000)}`;
 
   try {
-    const response = await groq.chat.completions.create({
-      model: AI_MODEL,
-      messages: [
-        {
-          role: "system",
-          content: "You extract structured job information into valid JSON with precise USD or INR currency detection according to the schema.",
-        },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.1,
-      response_format: { type: "json_object" },
-    });
+    let content = "";
+    try {
+      const response = await groq.chat.completions.create({
+        model: AI_MODEL,
+        messages: [
+          {
+            role: "system",
+            content: "You extract structured job information into valid JSON with precise USD or INR currency detection according to the schema.",
+          },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.1,
+        response_format: { type: "json_object" },
+      });
+      content = response.choices[0]?.message?.content || "";
+    } catch (primaryErr: any) {
+      console.warn("Primary Groq model error, trying fallback model llama-3.1-8b-instant:", primaryErr?.message);
+      const fallbackResponse = await groq.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [
+          {
+            role: "system",
+            content: "You extract structured job information into valid JSON with precise USD or INR currency detection according to the schema.",
+          },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.1,
+        response_format: { type: "json_object" },
+      });
+      content = fallbackResponse.choices[0]?.message?.content || "";
+    }
 
-    const content = response.choices[0]?.message?.content || "{}";
-    const cleaned = content.replace(/^```json\s*/i, "").replace(/```$/g, "").trim();
-    const parsed = JSON.parse(cleaned);
-    return JobExtractedSchema.parse(parsed);
-  } catch (err: any) {
-    console.error("AI job extraction error:", err?.message);
-    return {
-      companyName: "Tech Company",
-      companyLogoUrl: "",
-      role: "Software Engineer",
-      jd: jobText,
-      salaryRange: isIndianContext
-        ? { min: 1200000, max: 1800000, currency: "INR" }
-        : { min: 120000, max: 160000, currency: "USD" },
-      location: isIndianContext ? "Bengaluru, India (Hybrid)" : "Remote",
-      city: isIndianContext ? "Bengaluru" : "",
-      pincode: "",
-      experienceRequired: { min: 2, max: 5 },
-      jobType: "hybrid",
-      applyUrl: "",
-      applyMode: "easy-apply",
-      skills: ["Full Stack", "TypeScript", "React"],
+    const firstBrace = content.indexOf("{");
+    const lastBrace = content.lastIndexOf("}");
+    if (firstBrace === -1 || lastBrace === -1) throw new Error("No JSON in response");
+
+    const parsed = JSON.parse(content.slice(firstBrace, lastBrace + 1));
+
+    // Coerce and sanitize parsed fields before validation
+    const normalizedSalaryMin = Number(parsed.salaryRange?.min) || fallback.salaryRange.min;
+    const normalizedSalaryMax = Number(parsed.salaryRange?.max) || fallback.salaryRange.max;
+    const rawCurrency = String(parsed.salaryRange?.currency || "").toUpperCase();
+    const normalizedCurrency = ["INR", "USD", "EUR", "GBP"].includes(rawCurrency)
+      ? rawCurrency
+      : fallback.salaryRange.currency;
+
+    const rawJobType = String(parsed.jobType || "").toLowerCase();
+    const normalizedJobType = rawJobType.includes("remot")
+      ? "remote"
+      : rawJobType.includes("hybr")
+      ? "hybrid"
+      : rawJobType.includes("onsite") || rawJobType.includes("office")
+      ? "onsite"
+      : fallback.jobType;
+
+    const normalizedExpMin = Number(parsed.experienceRequired?.min) ?? fallback.experienceRequired.min;
+    const normalizedExpMax = Number(parsed.experienceRequired?.max) ?? fallback.experienceRequired.max;
+
+    const applyUrl = parsed.applyUrl || fallback.applyUrl || "";
+    const applyMode = parsed.applyMode === "external" || parsed.applyMode === "easy-apply"
+      ? parsed.applyMode
+      : applyUrl ? "external" : fallback.applyMode;
+
+    const skills = Array.isArray(parsed.skills) && parsed.skills.length > 0
+      ? Array.from(new Set([...parsed.skills, ...fallback.skills.slice(0, 3)]))
+      : fallback.skills;
+
+    const sanitizedData = {
+      companyName: parsed.companyName && !/tech company/i.test(parsed.companyName) ? parsed.companyName : fallback.companyName,
+      companyLogoUrl: parsed.companyLogoUrl || "",
+      role: parsed.role && !/software engineer/i.test(parsed.role) ? parsed.role : (fallback.role || parsed.role || "Software Engineer"),
+      jd: parsed.jd && parsed.jd.length > 30 ? parsed.jd : fallback.jd,
+      salaryRange: {
+        min: normalizedSalaryMin,
+        max: normalizedSalaryMax,
+        currency: normalizedCurrency,
+      },
+      location: parsed.location || fallback.location,
+      city: parsed.city || fallback.city || "",
+      pincode: parsed.pincode || fallback.pincode || "",
+      experienceRequired: {
+        min: normalizedExpMin,
+        max: normalizedExpMax,
+      },
+      jobType: normalizedJobType,
+      applyUrl,
+      applyMode,
+      skills,
     };
+
+    return JobExtractedSchema.parse(sanitizedData);
+  } catch (err: any) {
+    console.warn("AI job extraction using heuristic fallback engine:", err?.message);
+    return fallback;
   }
 }

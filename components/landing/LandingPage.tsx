@@ -37,16 +37,17 @@ export default function LandingPage() {
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (isMounted && data && typeof data === "object") {
+          const payload = data.content || data;
           setContent((prev) => ({
             ...prev,
-            ...data,
-            partners: { ...prev.partners, ...(data.partners || {}) },
-            hero: { ...prev.hero, ...(data.hero || {}) },
-            features: { ...prev.features, ...(data.features || {}) },
-            howItWorks: { ...prev.howItWorks, ...(data.howItWorks || {}) },
-            faqs: { ...prev.faqs, ...(data.faqs || {}) },
-            ctaBanner: { ...prev.ctaBanner, ...(data.ctaBanner || {}) },
-            footer: { ...prev.footer, ...(data.footer || {}) },
+            ...payload,
+            partners: { ...prev.partners, ...(payload.partners || {}) },
+            hero: { ...prev.hero, ...(payload.hero || {}) },
+            features: { ...prev.features, ...(payload.features || {}) },
+            howItWorks: { ...prev.howItWorks, ...(payload.howItWorks || {}) },
+            faqs: { ...prev.faqs, ...(payload.faqs || {}) },
+            ctaBanner: { ...prev.ctaBanner, ...(payload.ctaBanner || {}) },
+            footer: { ...prev.footer, ...(payload.footer || {}) },
           }));
         }
       })

@@ -24,6 +24,7 @@ import {
   Coins,
   GraduationCap,
   RotateCcw,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,113 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { formatSalaryRange } from "@/lib/utils";
 import { sanitizeJD } from "@/lib/sanitize";
+
+export const DEMO_JOB_PRESETS = [
+  {
+    label: "Full-Stack Engineer (Razorpay)",
+    subtitle: "22 - 32 LPA • Bengaluru (Hybrid)",
+    text: `Company: Razorpay
+Role: Senior Full-Stack Engineer
+Location: Bengaluru, India (Hybrid)
+Job Type: Hybrid
+Salary: 22 - 32 LPA (CTC)
+Experience Required: 3-6 years
+Apply Link: https://razorpay.com/careers/senior-fullstack-engineer
+
+About Razorpay:
+Razorpay is India's leading full-stack financial solutions platform powering millions of businesses with payments, banking, and credit infrastructure.
+
+What you will do:
+- Design and build high-throughput, resilient web applications using Next.js, React, TypeScript, and Node.js.
+- Architect scalable microservices in Node.js and Go with PostgreSQL, Redis, and Kafka.
+- Implement secure payment gateways, checkout flows, and real-time merchant analytics.
+- Collaborate with product designers, DevOps, and security teams in an agile environment.
+
+Requirements:
+- 3 to 6 years of experience building modern full-stack web applications.
+- Strong proficiency in TypeScript, React.js, Next.js, and Node.js.
+- Solid understanding of database design, ACID transactions in PostgreSQL, and caching with Redis.
+- Hands-on experience with Docker, Kubernetes, and AWS cloud environments.
+- Excellent problem-solving skills and clean code practices.`,
+  },
+  {
+    label: "DevOps & Cloud Platform (Stripe)",
+    subtitle: "$150k - $195k USD • Remote",
+    text: `Company: Stripe
+Role: Senior Cloud Infrastructure & DevOps Engineer
+Location: San Francisco, CA (Remote)
+Job Type: Remote
+Salary: $150,000 - $195,000 USD
+Experience Required: 4-8 years
+Apply Link: https://stripe.com/jobs/cloud-infra-engineer
+
+About Stripe:
+Stripe builds economic infrastructure for the internet, handling billions of dollars in global digital commerce every day with 99.999% uptime.
+
+Key Responsibilities:
+- Manage multi-region Kubernetes clusters on AWS and GCP with automated zero-downtime deployments.
+- Write infrastructure-as-code using Terraform, Ansible, and GitOps workflows.
+- Build automated CI/CD pipelines using GitHub Actions and ArgoCD.
+- Monitor global latency and uptime using Prometheus, Grafana, and Datadog.
+
+Qualifications:
+- 4+ years in DevOps, Site Reliability Engineering (SRE), or Cloud Architecture.
+- Deep expertise in Kubernetes, Docker, Linux systems, and AWS services (EKS, VPC, RDS).
+- Proficiency in Python, Go, or Bash for automation scripting.
+- Experience with infrastructure security, compliance, and disaster recovery.`,
+  },
+  {
+    label: "AI / Machine Learning Engineer (OpenTech)",
+    subtitle: "28 - 42 LPA • Gurugram (Hybrid)",
+    text: `Company: OpenTech AI Labs
+Role: Staff AI / Machine Learning Engineer
+Location: Gurugram, India (Hybrid)
+Job Type: Hybrid
+Salary: 28 - 42 LPA
+Experience Required: 4-7 years
+Apply Link: https://opentech.ai/careers/staff-ml-engineer
+
+About OpenTech AI:
+We build state-of-the-art enterprise Generative AI agents, RAG search pipelines, and autonomous reasoning workflows.
+
+What You Will Do:
+- Fine-tune, evaluate, and deploy open-source LLMs (Llama, Mistral) and multimodal architectures.
+- Build low-latency RAG systems using vector databases (Pinecone, Qdrant, ChromaDB).
+- Develop production inference APIs using FastAPI, PyTorch, Ray, and Docker.
+- Implement guardrails, hallucination filters, and prompt optimization pipelines.
+
+Requirements:
+- 4-7 years of software development with at least 3 years in applied Machine Learning.
+- Expertise in Python, PyTorch, HuggingFace transformers, and LangChain/LlamaIndex.
+- Experience with vector search, embeddings, and semantic ranking algorithms.
+- Strong knowledge of GPU acceleration (CUDA, vLLM, TensorRT-LLM).`,
+  },
+  {
+    label: "Frontend UI Specialist (Swiggy)",
+    subtitle: "16 - 24 LPA • Bengaluru",
+    text: `Company: Swiggy
+Role: Frontend Software Engineer III
+Location: Bengaluru, India (Hybrid)
+Job Type: Hybrid
+Salary: 16 - 24 LPA
+Experience Required: 2-5 years
+Apply Link: https://swiggy.com/careers/frontend-engineer
+
+About Swiggy:
+Swiggy is India's leading on-demand convenience platform, serving millions of orders daily across food delivery, Instamart, and dining out.
+
+What You Will Build:
+- High-performance, mobile-first consumer interfaces with sub-second initial load times.
+- Interactive consumer checkout and order tracking experiences using React, TypeScript, and Tailwind CSS.
+- Reusable UI component libraries with strict accessibility (WCAG) and fluid animations.
+
+Requirements:
+- 2 to 5 years experience building complex web client applications.
+- Mastery of JavaScript (ES6+), TypeScript, React, and CSS/Tailwind.
+- Deep understanding of browser rendering performance, Core Web Vitals, and responsive UI.
+- Experience with Redux Toolkit or Zustand and GraphQL APIs.`,
+  },
+];
 
 export default function AdminIngestPage() {
   const router = useRouter();
@@ -45,6 +153,7 @@ export default function AdminIngestPage() {
   const [publishing, setPublishing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [selectedPresetIndex, setSelectedPresetIndex] = useState(0);
 
   // Review and publish state
   const [extractedDraft, setExtractedDraft] = useState<any | null>(null);
@@ -75,13 +184,36 @@ export default function AdminIngestPage() {
     };
   };
 
-  const handleExtractText = async () => {
-    if (!pasteText || pasteText.trim().length < 20) {
+  const handleFillDemoText = (index = 0) => {
+    setSelectedPresetIndex(index);
+    const chosen = DEMO_JOB_PRESETS[index];
+    setPasteText(chosen.text);
+    setErrorMsg(null);
+    setSuccessMsg(`Loaded demo data: "${chosen.label}". Click "Extract with AI" to process.`);
+  };
+
+  const handleFillAndExtractDemo = async (index = 0) => {
+    setSelectedPresetIndex(index);
+    const chosen = DEMO_JOB_PRESETS[index];
+    setPasteText(chosen.text);
+    setErrorMsg(null);
+    await handleExtractText(chosen.text);
+  };
+
+  const handleFillDemoUrl = () => {
+    setLinkUrl("https://careers.google.com/jobs/results/senior-software-engineer");
+    setErrorMsg(null);
+    setSuccessMsg("Loaded demo job URL. Click 'Fetch & Extract' to analyze.");
+  };
+
+  const handleExtractText = async (textOverride?: string) => {
+    const textToProcess = typeof textOverride === "string" ? textOverride : pasteText;
+    if (!textToProcess || textToProcess.trim().length < 20) {
       setErrorMsg("Please paste at least 20 characters of job text.");
       return;
     }
     setExtracting(true);
-    setExtractingText("Submitting job text for extraction...");
+    setExtractingText("AI analyzing and structuring job description...");
     setErrorMsg(null);
     setSuccessMsg(null);
 
@@ -89,19 +221,29 @@ export default function AdminIngestPage() {
       const res = await fetch("/api/jobs/ingest/paste", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: pasteText }),
+        body: JSON.stringify({ text: textToProcess }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Extraction failed");
+
+      // Check if server directly returned extraction result
+      if (data.status === "completed" && (data.extracted || data.result?.extracted)) {
+        const raw = data.extracted || data.result?.extracted;
+        setExtractedDraft(normalizeExtracted(raw));
+        setSuccessMsg("AI extraction complete! Review and verify profile details below before publishing.");
+        setExtracting(false);
+        setExtractingText(null);
+        return;
+      }
 
       const jobId = data.jobId;
       setExtractingText("AI analyzing and structuring job description in background...");
 
       let attempts = 0;
-      const maxAttempts = 30; // 60 seconds maximum timeout
+      const maxAttempts = 30; // 45-60 seconds maximum timeout
 
       while (attempts < maxAttempts) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 1500));
         attempts++;
 
         const statusRes = await fetch(`/api/jobs/ingest/status/${jobId}`);
@@ -131,8 +273,9 @@ export default function AdminIngestPage() {
     }
   };
 
-  const handleExtractLink = async () => {
-    if (!linkUrl || !linkUrl.startsWith("http")) {
+  const handleExtractLink = async (urlOverride?: string) => {
+    const urlToProcess = typeof urlOverride === "string" ? urlOverride : linkUrl;
+    if (!urlToProcess || !urlToProcess.startsWith("http")) {
       setErrorMsg("Please provide a valid URL starting with http:// or https://");
       return;
     }
@@ -145,19 +288,29 @@ export default function AdminIngestPage() {
       const res = await fetch("/api/jobs/ingest/link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: linkUrl }),
+        body: JSON.stringify({ url: urlToProcess }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Extraction failed");
+
+      // Check if server directly returned extraction result
+      if (data.status === "completed" && (data.extracted || data.result?.extracted)) {
+        const raw = data.extracted || data.result?.extracted;
+        setExtractedDraft(normalizeExtracted(raw));
+        setSuccessMsg("AI extraction complete! Review and verify profile details below before publishing.");
+        setExtracting(false);
+        setExtractingText(null);
+        return;
+      }
 
       const jobId = data.jobId;
       setExtractingText("Scraping page and analyzing job link in background...");
 
       let attempts = 0;
-      const maxAttempts = 30; // 60 seconds maximum timeout
+      const maxAttempts = 30; // 45-60 seconds maximum timeout
 
       while (attempts < maxAttempts) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 1500));
         attempts++;
 
         const statusRes = await fetch(`/api/jobs/ingest/status/${jobId}`);
@@ -352,33 +505,96 @@ export default function AdminIngestPage() {
       {/* Tab 1: Paste Raw Text */}
       {activeTab === "paste-text" && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />
-              <span>Paste Job Description Text</span>
-            </CardTitle>
+          <CardHeader className="pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                <span>Paste Job Description Text</span>
+              </CardTitle>
+
+              {/* Demo Data Quick Action Buttons */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleFillDemoText(selectedPresetIndex)}
+                  className="text-xs h-8 gap-1.5 font-semibold bg-white border-slate-300 hover:border-primary hover:text-primary shadow-xs"
+                >
+                  <FileText className="h-3.5 w-3.5 text-primary" />
+                  <span>Fill Demo Data</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  disabled={extracting}
+                  onClick={() => handleFillAndExtractDemo(selectedPresetIndex)}
+                  className="text-xs h-8 gap-1.5 font-bold shadow-xs bg-gradient-to-r from-primary to-blue-600"
+                >
+                  <Zap className="h-3.5 w-3.5 text-amber-300 fill-amber-300" />
+                  <span>Fill & Extract Demo</span>
+                </Button>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 pt-1">
+            {/* Template Presets selector chips */}
+            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 overflow-x-auto no-scrollbar">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider shrink-0 flex items-center gap-1">
+                <Sparkles className="h-3 w-3 text-amber-500" />
+                Sample Roles:
+              </span>
+              {DEMO_JOB_PRESETS.map((preset, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleFillDemoText(idx)}
+                  className={`text-xs px-2.5 py-1 rounded-lg border font-medium transition-all shrink-0 cursor-pointer ${
+                    pasteText === preset.text
+                      ? "bg-primary text-white border-primary shadow-xs font-semibold"
+                      : "bg-white text-slate-700 border-slate-200 hover:border-primary hover:text-primary hover:bg-blue-50/50"
+                  }`}
+                  title={`${preset.label} (${preset.subtitle})`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+
             <textarea
-              rows={8}
+              rows={9}
               value={pasteText}
               onChange={(e) => setPasteText(e.target.value)}
-              placeholder="Paste raw JD here (e.g. from LinkedIn, Naukri, Lever, Greenhouse, or recruiter notes)..."
+              placeholder="Paste raw JD here (e.g. from LinkedIn, Naukri, Lever, Greenhouse, or click 'Fill Demo Data' above)..."
               className="w-full rounded-xl border border-border bg-surface-alt p-3.5 text-sm text-text-primary focus:border-primary focus:ring-1 focus:ring-primary font-mono text-xs leading-relaxed"
             />
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
               <span className="text-xs text-text-secondary">
                 AI extracts role, company, salary in USD / INR (LPA), experience, tech stack, and sanitized HTML description.
               </span>
-              <Button
-                variant="primary"
-                onClick={handleExtractText}
-                isLoading={extracting}
-                className="w-full sm:w-auto gap-2 shrink-0"
-              >
-                <Sparkles className="h-4 w-4 text-accent" />
-                <span>Extract with AI</span>
-              </Button>
+              <div className="flex items-center gap-2">
+                {pasteText && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPasteText("")}
+                    className="text-xs text-text-secondary hover:text-rose-600 h-9"
+                  >
+                    Clear Text
+                  </Button>
+                )}
+                <Button
+                  variant="primary"
+                  onClick={() => handleExtractText()}
+                  isLoading={extracting}
+                  className="w-full sm:w-auto gap-2 shrink-0 font-semibold"
+                >
+                  <Sparkles className="h-4 w-4 text-accent" />
+                  <span>Extract with AI</span>
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -387,13 +603,25 @@ export default function AdminIngestPage() {
       {/* Tab 2: Paste External Link */}
       {activeTab === "paste-link" && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Link2 className="h-4 w-4 text-primary" />
-              <span>Ingest from External URL</span>
-            </CardTitle>
+          <CardHeader className="pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Link2 className="h-4 w-4 text-primary" />
+                <span>Ingest from External URL</span>
+              </CardTitle>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleFillDemoUrl}
+                className="text-xs h-8 gap-1.5 font-semibold bg-white border-slate-300 hover:border-primary hover:text-primary shadow-xs"
+              >
+                <Link2 className="h-3.5 w-3.5 text-primary" />
+                <span>Fill Demo URL</span>
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 pt-1">
             <div className="flex flex-col sm:flex-row items-center gap-3">
               <Input
                 type="url"
@@ -405,9 +633,9 @@ export default function AdminIngestPage() {
               />
               <Button
                 variant="primary"
-                onClick={handleExtractLink}
+                onClick={() => handleExtractLink()}
                 isLoading={extracting}
-                className="w-full sm:w-auto shrink-0 gap-2"
+                className="w-full sm:w-auto shrink-0 gap-2 font-semibold"
               >
                 <Sparkles className="h-4 w-4 text-accent" />
                 <span>Fetch & Extract</span>
